@@ -1,6 +1,9 @@
 from telegram.ext import (Updater, CommandHandler, CallbackQueryHandler)
-from private import telegram_bot_token
+from private import telegram_bot_token, ADMIN_CHAT_ID
+
 from database import create_database
+create_database()
+
 from bot_start import bot_start, main_menu, send_main_message
 from tasks import (show_servers, get_service_of_server, payment_page, get_service_con, apply_card_pay,
                    my_service, create_file_and_return, server_detail_customer, personalization_service,
@@ -20,13 +23,14 @@ from admin_task import (admin_add_update_inbound, add_service, all_service, del_
                         add_credit_to_server_customer_wallet, add_credit_to_customer, admin_rank_up)
 
 import logging
+import requests
+from statistics import statistics_timer, STATISTICS_TIMER_HORSE
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
-create_database()
 
-# telegram_bot_url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage"
-# requests.post(telegram_bot_url, data={'chat_id': ADMIN_CHAT_ID, 'text':'🟠 THE BOT STARTED'})
+telegram_bot_url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage"
+requests.post(telegram_bot_url, data={'chat_id': ADMIN_CHAT_ID, 'text':'🟠 THE BOT STARTED'})
 
 
 def main():
@@ -181,6 +185,7 @@ def main():
     job = updater.job_queue
     job.run_repeating(check_all_configs, interval=100, first=0)
     job.run_repeating(pay_per_use_calculator, interval=3600, first=0)
+    job.run_repeating(statistics_timer, interval=STATISTICS_TIMER_HORSE * 3600, first=0)
 
     updater.start_polling()
     updater.idle()

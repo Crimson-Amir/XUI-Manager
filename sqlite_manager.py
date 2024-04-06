@@ -27,7 +27,7 @@ class ManageDb:
     @connecting_manage
     def select(self, column: str = "*", table: str = "sqlite_master",
                where: str = None, distinct: bool = False, order_by: str = None,
-               limit: int = None, ret_raw_res=False):
+               limit: int = None):
         """
         :param column: select <column> from db
         :param table: table name
@@ -96,6 +96,7 @@ class ManageDb:
 
     @connecting_manage
     def update(self, table, where):
+
         where = f'where {where}' or None
         for key, value in table.items():
             for k, v in value.items():
@@ -131,4 +132,3 @@ class ManageDb:
 # a.drop_table('teacher')
 # print(a.order_by(table='student'))
 # print(a.select(table='student'))
-

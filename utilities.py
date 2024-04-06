@@ -9,6 +9,8 @@ from api_clean import XuiApiClean
 
 api_operation = XuiApiClean()
 sqlite_manager = ManageDb('v2ray')
+infinity_name = '_Infinite_Service'
+
 
 def human_readable(number):
     get_date = arrow.get(number)
@@ -80,6 +82,29 @@ def format_traffic(traffic, without_text=None):
         return f"{int(megabytes)} مگابایت"
     else:
         return f"{traffic} گیگابایت"
+
+
+def format_mb_traffic(traffic):
+    if traffic == 0:
+        return 'بدون مصرف'
+    elif int(traffic) < 1000:
+        return f"{int(traffic)} مگابایت"
+    else:
+        return f"{round(traffic / 1000, 2)} گیگابایت"
+
+
+def make_day_name_farsi(text):
+    days_mapping = {
+        'Monday': 'دوشنبه',
+        'Tuesday': 'سه‌شنبه',
+        'Wednesday': 'چهارشنبه',
+        'Thursday': 'پنج‌شنبه',
+        'Friday': 'جمعه',
+        'Saturday': 'شنبه',
+        'Sunday': 'یک‌شنبه'
+    }
+
+    return days_mapping[text]
 
 
 def record_operation_in_file(chat_id, status_of_pay, price, name_of_operation, context, operation=1):
@@ -326,6 +351,5 @@ def moving_all_service_to_server_with_database_change(server_country):
             for client in config['clientStats']:
                 if client['enable']:
                     change_service_server(None, None, client['email'], server_country)
-
 
 

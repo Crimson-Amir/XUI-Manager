@@ -66,6 +66,7 @@ class Task(ManageDb):
         # client_id = get_client[0][10]
         client_email = get_client[0][9]
         inbound_id = get_client[0][7]
+
         now = datetime.now(pytz.timezone('Asia/Tehran'))
 
         ret_conf = api_operation.get_inbound(inbound_id, get_server_domain[0][0])
@@ -108,7 +109,7 @@ class Task(ManageDb):
                                          status_of_pay=1, context=context)
 
                 report_status_to_admin(context, text=f'User Upgrade Service\nService Name: {get_client[0][9]}'
-                                                     f'\nTraffic: {user_db[0][5]}GB\nPeriod: {human_data.day}day',
+                                                     f'\nTraffic: {user_db[0][5]}GB\nPeriod: {(human_data - now.replace(tzinfo=None)).days}day',
                                        chat_id=get_client[0][4])
 
                 break
@@ -2103,8 +2104,9 @@ def pay_per_use_calculator(context):
     get_user_wallet = sqlite_manager.select(
         column='chat_id,wallet,name,notification_wallet,notif_wallet,notif_low_wallet', table='User')
 
-    get_last_traffic_uasge = sqlite_manager.select(column='chat_id,purchased_id,last_traffic_usage',
-                                                   table='Hourly_service')
+    get_last_traffic_uasge = sqlite_manager.select(
+        column='chat_id,purchased_id,last_traffic_usage',
+        table='Hourly_service')
     try:
         for server in get_all:
             for config in server['obj']:
@@ -2114,7 +2116,7 @@ def pay_per_use_calculator(context):
                             user_wallet = [wallet for wallet in get_user_wallet if wallet[0] == user[1]]
                             last_traffic_usage = [last_traffic_use for last_traffic_use in get_last_traffic_uasge if
                                                   last_traffic_use[1] == user[0]]
-                            print(last_traffic_usage, user)
+
                             if client['enable']:
 
                                 upload_gb = client['up'] / (1024 ** 3)
@@ -2127,14 +2129,8 @@ def pay_per_use_calculator(context):
                                 cost = ranking_manage.discount_calculation(user[1], direct_price=cost)
 
                                 wallet_manage.less_from_wallet_with_condition_to_make_history(user[1], cost,
-                                                                                              user_detail={'name':
-                                                                                                               user_wallet[
-                                                                                                                   0][
-                                                                                                                   2],
-                                                                                                           'username':
-                                                                                                               user_wallet[
-                                                                                                                   0][
-                                                                                                                   2]},
+                                                                                              user_detail={'name': user_wallet[0][2],
+                                                                                                           'username': user_wallet[0][2]},
                                                                                               con=100)
 
                                 sqlite_manager.update(table={'Hourly_service': {'last_traffic_usage': usage_traffic}},
@@ -2195,6 +2191,7 @@ def pay_per_use_calculator(context):
                                 print(api_operation.update_client(user[8], data, get_server_domain[0][0]))
 
                                 sqlite_manager.update({'Purchased': {'status': 0}}, where=f'id = {user[0]}')
+
                                 context.bot.send_message(ADMIN_CHAT_ID,
                                                          text=f'Service OF {user_wallet[0][2]} Named {user[2]} Has Be Ended')
 
@@ -2370,7 +2367,7 @@ def service_advanced_option(update, context):
         if 'change_auto_renewal_status_' in query.data:
             data = query.data.replace('change_auto_renewal_status_', '').split('__')
             changed_to, status_1 = (
-            1, '\n\n↲ بعد از پایان سرویس، درصورت اعتبار داشتن کیف پول، بسته به صورت خودکار تمدید میشود.') if eval(
+                1, '\n\n↲ بعد از پایان سرویس، درصورت اعتبار داشتن کیف پول، بسته به صورت خودکار تمدید میشود.') if eval(
                 data[1]) else (0, '')
             email = data[0]
             sqlite_manager.update({'Purchased': {'auto_renewal': changed_to}}, where=f'client_email = "{email}"')
@@ -2438,7 +2435,7 @@ def service_advanced_option(update, context):
                 f"{key} {'✅' if get_server_country[0][0] == key or get_server_country[0][0].replace('pay_per_use_', '') == value else ''}",
                 callback_data='alredy_have_show' if get_server_country[0][0] == key or get_server_country[0][0].replace(
                     'pay_per_use_', '') == value else f'changed_server_to_{email}__{value}')] for key, value in
-                             unic_plans.items()]
+                unic_plans.items()]
 
             keyboard_main.append([InlineKeyboardButton("برگشت ↰", callback_data=f"advanced_option_{email}")])
 
@@ -2477,7 +2474,7 @@ def service_advanced_option(update, context):
             else ('غیرفعال ✗', 'فعال کردن تمدید خودکار ✓', True)
 
         tls_encodeing, tls_status, change_to_ = ('✓', 'فعال ✓', False) if get_data[0][7] == TLS_INBOUND else (
-        '✗', 'غیرفعال ✗', True)
+            '✗', 'غیرفعال ✗', True)
 
         text_ = (
             "<b>🟡 با تغییر گزینه‌ها، تنظیمات سرویس تغییر می‌کند و اگر به این سرویس متصل هستید،"
