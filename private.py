@@ -2,6 +2,7 @@ telegram_bot_token = "6308260945:AAGeqcuRyu3Lko7fclfekNQDtMK-oCKPuAM"
 auth = {'username': 'amir', 'password': 'amir'}
 PORT = 2053
 ADMIN_CHAT_ID = -1002115809340
+OTHER_ADMIN = [ADMIN_CHAT_ID, 6450325872]
 DOMAIN = "finland.ggkala.shop"
 protocol = 'https://'
 PRICE_PER_GB = 1_500
