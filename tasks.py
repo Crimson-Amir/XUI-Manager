@@ -2496,6 +2496,7 @@ def service_advanced_option(update, context):
                     [InlineKeyboardButton(f"رمزگذاری TLS {tls_encodeing}",
                                           callback_data=f"active_tls_encoding_{email}__{change_to_}"),
                      InlineKeyboardButton("• انتقال مالکیت", callback_data=f"change_service_ownership_{email}")],
+                    [InlineKeyboardButton(f"گزارش مصرف ⥮", callback_data=f"statistics_week_{get_data[0][0]}_hide")],
                     [InlineKeyboardButton("برگشت ↰", callback_data=f"view_service_{email}")]]
 
         query.edit_message_text(text_,
@@ -2769,4 +2770,53 @@ def admin_server_detail(update, context):
                                       chat_id=query.message.chat_id,
                                       detail=f'Service Email: {email}')
         query.answer('مشکلی وجود دارد!')
-        print(e)
+
+@handle_telegram_exceptions
+def service_statistics(update, context):
+    query = update.callback_query
+    chat_id = query.message.chat_id
+
+    get_data = query.data.split('_')
+    get_page = get_data[3]
+    get_period = get_data[2]
+
+
+    if get_period == 'all':
+        number_in_page = 10
+        check = f'chat_id = {chat_id} and active = 1'
+
+        if chat_id in ranking_manage.list_of_partner:
+            check = f'chat_id = {chat_id}'
+
+        get_limit = int(get_page)
+
+        get_all_purchased = sqlite_manager.select(table='Purchased', where=check)
+        get_purchased = get_all_purchased[get_limit - number_in_page:get_limit]
+
+        if get_purchased:
+
+            keyboard = [
+                [InlineKeyboardButton(f"{'✅' if ser[11] == 1 else '❌'} {ser[9]}",
+                                      callback_data=f"statistics_week_{ser[0]}_hide")] for ser in get_purchased]
+
+
+            if len(get_all_purchased) > number_in_page:
+                keyboard_backup = []
+                keyboard_backup.append(InlineKeyboardButton("قبل ⤌",
+                                                            callback_data=f"service_statistics_{get_limit - number_in_page}")) if get_limit != number_in_page else None
+                keyboard_backup.append(
+                    InlineKeyboardButton(f"صفحه {int(get_limit / number_in_page)}", callback_data="just_for_show"))
+                keyboard_backup.append(InlineKeyboardButton("⤍ بعد",
+                                                            callback_data=f"service_statistics_{get_limit + number_in_page}")) if get_limit < len(
+                    get_all_purchased) else None
+                keyboard.append(keyboard_backup)
+
+            keyboard.append([InlineKeyboardButton("برگشت ↰", callback_data="main_menu")])
+            text = "<b>برای مشاهده گزارش مصرف، سرویس مورد نظر را انتخاب کنید:</b>"
+
+            query.delete_message()
+            context.bot.send_message(chat_id=chat_id, text=text,
+                                     reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')
+
+        else:
+            query.answer('شما صاحب سرویسی نیستید!')

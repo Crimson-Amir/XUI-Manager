@@ -6,6 +6,7 @@ from admin_task import (api_operation, sqlite_manager)
 from utilities import format_mb_traffic, make_day_name_farsi
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from plot import get_plot
+from tasks import handle_telegram_exceptions
 
 
 STATISTICS_TIMER_HORSE = 3
@@ -73,6 +74,7 @@ def datetime_range(start, end, delta):
         current += delta
 
 
+@handle_telegram_exceptions
 def reports_func(data):
 
     chat_id = data[0]
@@ -115,7 +117,7 @@ def reports_func(data):
                 usage_traffic = next(iter(usage.values()))
 
                 usage_detail.append(
-                    f'\n- سرویس شماره {usage_name}: {format_mb_traffic(usage_traffic)}' if usage_traffic else '')
+                    f'\n- سرویس شماره {usage_name} = {format_mb_traffic(usage_traffic)}' if usage_traffic else '')
                 get_traffic += usage_traffic
 
             detail_text += f'\n\n• از ساعت {first_time.strftime("%H:%M")} تا {time.strftime("%H:%M")} = {format_mb_traffic(get_traffic)}'
@@ -143,7 +145,7 @@ def reports_func(data):
             detail_text += ''.join(usage_detail[:5]) if get_purchased[0] == 'all' else ''
 
             final_traffic += get_traff
-            final_dict[f"{our_date.strftime('%A')}"] = get_traff
+            final_dict[f"{our_date.strftime('%a %d')}"] = get_traff
 
         avreage_traffic = final_traffic / index
 
@@ -181,12 +183,18 @@ def reports_func(data):
     return detail_text, final_dict, final_traffic, avreage_traffic
 
 
+@handle_telegram_exceptions
 def report_section(update, context):
     query = update.callback_query
     data_org = query.data.split('_')  # statistics_day_all_hide
     chat_id = query.message.chat_id
     data = [chat_id, data_org[1], data_org[2]]
     get_data = reports_func(data)
+
+    if sum(get_data[1].values()) == 0:
+        keyboard = [[InlineKeyboardButton("برگشت ↰", callback_data='main_menu')]]
+        query.edit_message_text('<b>مصرفی برای شما ثبت نشده است.</b>', reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')
+        return
 
     mapping = {
         'day': (None, 'روز', f'statistics_week_{data[2]}_{data_org[3]}', 'ساعت'),
@@ -198,10 +206,10 @@ def report_section(update, context):
     back_button, button_name, next_button, constituent_name = (
         mapping.get(data[1], (f'statistics_day_{data[2]}', 'هفته', f'statistics_month_{data[2]}', 'روز')))
 
-    detail_emoji, detail_callback, detail_text = '➕', 'open', ''
+    detail_emoji, detail_callback, detail_text = '+', 'open', ''
 
     if data_org[3] == 'open':
-        detail_emoji, detail_callback = '➖', 'hide'
+        detail_emoji, detail_callback = '-', 'hide'
         detail_text = get_data[0]
 
     arrows = []
@@ -212,11 +220,11 @@ def report_section(update, context):
     keyboard = [
         arrows,
         [InlineKeyboardButton(f"{detail_emoji} جزئیات گزارش", callback_data=f'statistics_{data[1]}_{data[2]}_{detail_callback}')],
-        [InlineKeyboardButton(f"مشاهده گزارش سرویس ها", callback_data=f'service_statistics')],
+        [InlineKeyboardButton(f"مشاهده گزارش سرویس ها", callback_data=f'service_statistics_all_10')],
         [InlineKeyboardButton("برگشت ↰", callback_data='menu_delete_main_message')]
     ]
 
-    get_plot_image = get_plot(get_data[1])
+    get_plot_image = get_plot(get_data[1], data[1])
 
     text = (f'<b>گزارش مصرف {button_name}:</b>'
             f'\n\n<b>• مصرف کل {button_name}: {format_mb_traffic(get_data[2])}</b>'
