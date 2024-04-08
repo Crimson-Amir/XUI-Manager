@@ -13,25 +13,26 @@ STATISTICS_TIMER_HORSE = 3
 
 
 def statistics_timer(context):
-    get_all = api_operation.get_all_inbounds()
-
     date_now = datetime.now(pytz.timezone('Asia/Tehran'))
     date = datetime.strftime(date_now, '%Y-%m-%d %H:%M:%S')
-    print(date)
-    get_from_db = sqlite_manager.select(
-        column='id,chat_id,client_email,status,date,notif_day,notif_gb,inbound_id,client_id,product_id',
-        table='Purchased')
-
-    get_last_traffic_uasge = sqlite_manager.select(
-        column='last_usage,date',
-        table='Last_usage',
-        order_by='id DESC',
-        limit=1
-    )
-
-    last_usage_dict, statistics_usage_traffic = {}, {}
 
     try:
+
+        get_all = api_operation.get_all_inbounds()
+
+        get_from_db = sqlite_manager.select(
+            column='id,chat_id,client_email,status,date,notif_day,notif_gb,inbound_id,client_id,product_id',
+            table='Purchased')
+
+        get_last_traffic_uasge = sqlite_manager.select(
+            column='last_usage,date',
+            table='Last_usage',
+            order_by='id DESC',
+            limit=1
+        )
+
+        last_usage_dict, statistics_usage_traffic = {}, {}
+
         for server in get_all:
             for config in server['obj']:
                 for client in config['clientStats']:
@@ -56,7 +57,6 @@ def statistics_timer(context):
         sqlite_manager.custom_multi(*list_of_order)
 
 
-
     except IndexError as e:
         ready_report_problem_to_admin(context, 'Statistics Timer IndexError!', '', e)
         if 'list index out of range' in str(e):
@@ -65,6 +65,7 @@ def statistics_timer(context):
 
     except Exception as e:
         ready_report_problem_to_admin(context, 'Statistics Timer IndexError!', '', e)
+
 
 
 def datetime_range(start, end, delta):
@@ -104,7 +105,7 @@ def reports_func(data):
         get_user_usage = [{user_purchased[0]: user_purchased[1]} for user_purchased in eval(get_date[1]).items() if user_purchased[0] in purchased]
         user_usage_dict[get_date[2]] = get_user_usage
 
-    detail_text, final_dict, final_traffic, avreage_traffic, index = '', {}, 0, 0, 1
+    detail_text, final_dict, final_traffic, avreage_traffic, index = 'None', {}, 0, 0, 1
 
     if period == 'day':
         for index, (timestamp, usage_list) in enumerate(user_usage_dict.items()):
@@ -161,7 +162,7 @@ def reports_func(data):
                 date_ = our_date.strftime(period_value['date_format'])
                 get_usage, get_traff = {}, 0
                 for _ in user_usage_dict.items():
-                    time = datetime.strptime(_[0], '%Y-%m-%d %H:%M:%S').strftime('%Y-%m')
+                    time = datetime.strptime(_[0], '%Y-%m-%d %H:%M:%S').strftime(period_value['date_format'])
                     if time == date_:
                         for usage in _[1]:
                             usage_name, usage_traffic = next(iter(usage.items()))
@@ -175,7 +176,7 @@ def reports_func(data):
                 detail_text += ''.join(usage_detail[:5]) if get_purchased[0] == 'all' else ''
 
                 final_traffic += get_traff
-                final_dict[f"{our_date.strftime('%Y-%m')}"] = get_traff
+                final_dict[f"{our_date.strftime('%m-%d')}"] = get_traff
 
             avreage_traffic = final_traffic / index
             break
@@ -193,7 +194,7 @@ def report_section(update, context):
 
     if sum(get_data[1].values()) == 0:
         keyboard = [[InlineKeyboardButton("برگشت ↰", callback_data='main_menu')]]
-        query.edit_message_text('<b>مصرفی برای شما ثبت نشده است.</b>', reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')
+        query.edit_message_text(text='<b>مصرفی برای شما ثبت نشده است.</b>', reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')
         return
 
     mapping = {
@@ -232,7 +233,7 @@ def report_section(update, context):
     text += f'\n{detail_text}'
 
     if query.message.photo:
-        media_photo = InputMediaPhoto(media=get_plot_image, caption=text, parse_mode='html')
+        media_photo = InputMediaPhoto(media=get_plot_image, parse_mode='html')
         context.bot.edit_message_media(media=media_photo, chat_id=chat_id, message_id=query.message.message_id)
         context.bot.edit_message_caption(caption=text, parse_mode='html', chat_id=chat_id,
                                          message_id=query.message.message_id,
@@ -244,5 +245,5 @@ def report_section(update, context):
                                reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')
 
 
-# reports_func('all')
+# print(reports_func([81532053, 'month', 'week']))
 # statistics_timer(1)

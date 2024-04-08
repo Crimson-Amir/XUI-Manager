@@ -4,6 +4,9 @@ PORT = 2053
 ADMIN_CHAT_ID = -1002115809340
 OTHER_ADMIN = [ADMIN_CHAT_ID, 6450325872]
 DOMAIN = "finland.ggkala.shop"
+country_main_name = '🇫🇮 فنلاند'
+country_main = 'finland'
+
 protocol = 'https://'
 PRICE_PER_GB = 1_500
 PRICE_PER_DAY = 500

@@ -2,10 +2,13 @@ import random
 import uuid
 from datetime import datetime, timedelta
 import telegram.error
+
+import private
 from utilities import (human_readable, something_went_wrong,
                        ready_report_problem_to_admin, format_traffic, record_operation_in_file,
                        send_service_to_customer_report, report_status_to_admin, find_next_rank,
-                       change_service_server, get_rank_and_emoji, report_problem_by_user_utilitis, report_problem)
+                       change_service_server, get_rank_and_emoji, report_problem_by_user_utilitis, report_problem,
+                       format_mb_traffic)
 import admin_task
 from private import *
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -53,15 +56,18 @@ class Task(ManageDb):
         return unic_plans
 
     @handle_exceptions
-    def upgrade_service(self, context, service_id):
+    def upgrade_service(self, context, service_id, by_list=None):
         get_client = sqlite_manager.select(table='Purchased', where=f'id = {service_id}')
 
         get_server_domain = sqlite_manager.select(column='server_domain', table='Product',
                                                   where=f'id = {get_client[0][6]}')
 
-        user_db = sqlite_manager.select(table='User', where=f'chat_id = {get_client[0][4]}')
-
-        price = ranking_manage.discount_calculation(user_db[0][3], user_db[0][5], user_db[0][6])
+        if not by_list:
+            user_db = sqlite_manager.select(table='User', where=f'chat_id = {get_client[0][4]}')
+            price = ranking_manage.discount_calculation(user_db[0][3], user_db[0][5], user_db[0][6])
+        else:
+            user_db = by_list  # [0, 0, 0, 0, 0, traffic_gb, period_day]
+            price = 0
 
         # client_id = get_client[0][10]
         client_email = get_client[0][9]
@@ -78,14 +84,14 @@ class Task(ManageDb):
 
                 if client['enable']:
                     tra = client['totalGB']
-                    traffic = (user_db[0][5] * (1024 ** 3)) + tra
+                    traffic = int((user_db[0][5] * (1024 ** 3)) + tra)
                     expiry_timestamp = client['expiryTime']
                     expiry_datetime = datetime.fromtimestamp(expiry_timestamp / 1000)
                     new_expiry_datetime = expiry_datetime + timedelta(days=user_db[0][6])
                     human_data = new_expiry_datetime
                     my_data = int(new_expiry_datetime.timestamp() * 1000)
                 else:
-                    traffic = user_db[0][5] * (1024 ** 3)
+                    traffic = int(user_db[0][5] * (1024 ** 3))
                     my_data = now + timedelta(days=user_db[0][6])
                     human_data = my_data
                     my_data = int(my_data.timestamp() * 1000)
@@ -109,7 +115,7 @@ class Task(ManageDb):
                                          status_of_pay=1, context=context)
 
                 report_status_to_admin(context, text=f'User Upgrade Service\nService Name: {get_client[0][9]}'
-                                                     f'\nTraffic: {user_db[0][5]}GB\nPeriod: {(human_data - now.replace(tzinfo=None)).days}day',
+                                                     f'\nTraffic: {user_db[0][5]}GB\nPeriod: {user_db[0][6]}day',
                                        chat_id=get_client[0][4])
 
                 break
@@ -408,19 +414,18 @@ def send_clean_for_customer(query, context, id_):
                 invite_chat_id = get_user_detail[0][0]
                 subcategory_auto(context, invite_chat_id, price)
 
-                return True
+                return {'success': True, 'msg': 'config created successfull', 'purchased_id': id_}
             else:
                 send_service_to_customer_report(context, status=0, chat_id=get_client[0][4],
                                                 service_name=get_client[0][9],
                                                 more_detail=create)
-                print('wrong: ', returned)
-                return False
+                return {'success': False, 'msg': returned}
 
         except Exception as e:
-            print(e)
             send_service_to_customer_report(context, status=0, chat_id=get_client[0][4], service_name=get_client[0][9],
                                             more_detail='ERROR IN SEND CLEAN FOR CUSTOMER', error=e)
-            return False
+            return {'success': False, 'msg': str(e)}
+
     else:
         send_service_to_customer_report(context, status=0, chat_id=None, service_name=None,
                                         more_detail=f'EEROR IN ADD CLIENT (SEND CLEAN FOR CUSTOMER)\n{create}')
@@ -555,8 +560,10 @@ def server_detail_customer(update, context):
         keyboard = [
             [InlineKeyboardButton("تمدید و ارتقا ↟", callback_data=f"upgrade_service_customize_{get_data[0][0]}")]]
 
-        if int(ret_conf['obj']['total']) != 0:
-            total_traffic = int(round(ret_conf['obj']['total'] / (1024 ** 3), 2))
+        # report_status_to_admin(context, chat_id=None, text=ret_conf['obj'])
+
+        if ret_conf['obj']['total'] != 0:
+            total_traffic = round(ret_conf['obj']['total'] / (1024 ** 3), 2)
 
         if int(ret_conf['obj']['expiryTime']) != 0:
             expiry_timestamp = ret_conf['obj']['expiryTime'] / 1000
@@ -598,7 +605,7 @@ def server_detail_customer(update, context):
             f"\n📅 تاریخ انقضا: {expiry_month} {exist_day}"
             f"\n\n🔼 آپلود↑: {format_traffic(upload_gb)}"
             f"\n🔽 دانلود↓: {format_traffic(download_gb)}"
-            f"\n📊 مصرف کل: {usage_traffic}/{total_traffic}{'GB' if isinstance(total_traffic, int) else ''}"
+            f"\n📊 مصرف کل: {usage_traffic}/{total_traffic}{'GB' if isinstance(total_traffic, float) else ''}"
             f"{auto_renwal}"
             f"\n⏰ تاریخ خرید/تمدید: {purchase_date.strftime('%H:%M:%S | %Y/%m/%d')}"
             f"\n\n🌐 آدرس سرویس:\n <code>{get_data[0][8]}</code>"
@@ -1083,7 +1090,7 @@ def show_help(update, context):
     query = update.callback_query
     help_what = query.data.replace('_help', '')
     if help_what == 'apps':
-        text = "<b>از طریق گزینه های زیر به صفحه رسمی نرم افزار برید \nو نسخه مرتبط با دستگاه خودتون رو دانلود کنید.</b>"
+        text = "<b>همه لینک ها، از صفحات رسمی نرم افزارها هستند. \nو نسخه مرتبط با دستگاه خودتان را دانلود کنید.</b>"
         keyboard = [
             [InlineKeyboardButton("V2RayNG",
                                   url="https://play.google.com/store/apps/details?id=com.v2ray.ang&hl=en&gl=US"),
@@ -1095,29 +1102,32 @@ def show_help(update, context):
             [InlineKeyboardButton("برگشت ⤶", callback_data="guidance")]
         ]
     elif help_what == 'personalize':
-        text = ("<b>شخصی سازی ربات از قسمت تنظیمات قابل انجام است</b>"
+        text = ("<b>ربات ویژگی های مختلفی برای افزایش دقت و سرعت ارائه میدهد.</b>"
                 f"\n\n<b>• کیف پول:</b>"
-                f"\nبا شارژ کردن کیف پول خودتون میتونید تمام تراکنش ها رو بدون نیاز به تایید و بدون تاخیر انجام بدید."
-                f"\nهمچنین بازپرداخت حذف سرویس به کیف پولتون برمیگرده."
-                f"\nاگر سرویس شما قطع بشه و مشکل از سمت سرور باشه، مبلغ خسارت محاسبه و به کیف پول اضافه میشه."
+                f"\nبا شارژ کردن کیف پول میتوانید تمام تراکنش ها را بدون نیاز به تایید و بدون تاخیر انجام بدید."
+                f"\nهمچنین بازپرداخت حذف سرویس به کیف پول اضافه میشود."
                 f"\n\n<b>• نوتیفیکبشن:</b>"
-                f"\nبا تنظیم نوتیفیکیشن ربات اعلان های مربوط به تاریخ انقضا سرویس و همچنین حجم ترافیک باقیمونده شما رو به اطلاعاتون میرسونه."
-                f"\nربات 5 دقیقه یک بار اطلاعات رو بررسی میکنه."
+                f"\nبا تنظیم نوتیفیکیشن ربات اعلان های مربوط به تاریخ انقضا سرویس و همچنین حجم ترافیک باقیمانده شما را به اطلاع میرساند."
+                f"\nهمچنین با رسیدن اعتبار کیف پول به عدد تعیین شده توسط شما، ربات اعلان مربوطه را ارسال میکند."
                 f"\n\n<b>• تراکنش ها:</b>"
-                f"\nهمه تراکنش های شما توسط ربات ثبت میشه و همیشه میتونید بهشون دسترسی داشته باشید."
+                f"\nهمه تراکنش های شما توسط ربات ثبت میشود و همیشه میتوانید به آن ها دسترسی داشته باشید."
+                f"\nتراکنش ها به دو صورت در دسترس هستند، تراکنش های کلی و تراکنش های کیف پول که میتوانید در قسمت کیف پول مشاهده کنید."
+                f"\n\n<b>• گزارش و آمار:</b>"
+                f"\nمصرف شما توسط ربات ثبت میشود و به صورت روزانه، هفتگی و .. قابل نمایش است."
+                f"\nبا گزینه 'گزارش ها' در منو اصلی میتوانید آمار را به صورت دقیق مشاهده کنید."
                 )
         keyboard = [
             [InlineKeyboardButton("تنظیمات ⚙️", callback_data="setting")],
             [InlineKeyboardButton("برگشت ⤶", callback_data="guidance")]]
 
     elif help_what == 'robots_service':
-        text = ("<b>ربات سرویس های مختلفی ارائه میده، لطفا سرویس ها رو بررسی کنید و مطمئن بشید کدوم مناسب شماست</b>"
+        text = ("<b>ربات سرویس های مختلفی با ویژگی های مختلف ارائه میدهد</b>"
                 "\n\n<b>• سرویس های آماده:</b>"
-                "\nاین سرویس ها حجم و ترافیک مشخصی دارن و انتخاب راحتی هستن، مانند:\n - سرویس 30 روزه - 15 گیگابایت - 45,000 تومن"
+                "\nاین سرویس ها با حجم و ترافیک مشخص انتخاب سریع و راحتی هستند، مانند:\n - سرویس x روزه - x گیگابایت - x تومن"
                 "\n\n<b>• سرویس دلخواه:</b>"
-                "\nاین سرویس به شما اجازه میده حجم و ترافیک رو مطابق میل خودتون تنظیم کنید و انتخاب شخصی سازی شده داشته باشید"
+                "\nاین سرویس به شما اجازه میدهند حجم و ترافیک رو مطابق میل خودتان تنظیم کنید و انتخاب شخصی سازی شده داشته باشید"
                 "\n\n<b>• سرویس ساعتی:</b>"
-                "\nاین سرویس براساس مصرف ترافیک شما در هر ساعت هزینه رو از کیف پول کم میکنه، محدودیت حجم و زمان نداره و با تموم شدن اعتبار کیف پول، غیرفعال میشه."
+                "\nاین سرویس براساس مصرف ترافیک شما در هر ساعت هزینه رو از کیف پول کسر میکند، محدودیتی برای حجم و زمان ندارد و با اتمام اعتبار کیف پول، غیرفعال میشود."
                 )
 
         keyboard = [
@@ -1125,17 +1135,13 @@ def show_help(update, context):
             [InlineKeyboardButton("برگشت ⤶", callback_data="guidance")]]
 
     else:  # help_what == 'people_ask'
-        text = "<b>در این قسمت میتونید جواب سوالات متداول رو پیدا کنید:</b>"
+        text = "<b>در این قسمت میتونید جواب سوالات متداول را پیدا کنید:</b>"
 
         keyboard = [
             [InlineKeyboardButton("استفاده از vpn مصرف اینترنت را افزایش میدهد؟",
                                   callback_data="ask_vpn_increase_traffic")],
             [InlineKeyboardButton("میتوانم سرویس خریداری شده را حذف و مبلغ رو برگردانم؟",
                                   callback_data="ask_can_i_remove_service")],
-            [InlineKeyboardButton("در صورت قطعی و فیلتر شدن سرویس، تکلیف چیست؟",
-                                  callback_data="ask_what_if_service_blocked")],
-            [InlineKeyboardButton("چرا با سرویس ها، نمیتوانم وارد سایت های ایرانی شوم؟",
-                                  callback_data="ask_persian_web_dont_open")],
             [InlineKeyboardButton("برگشت ⤶", callback_data="guidance")]]
 
     query.edit_message_text(text=text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')
@@ -1146,20 +1152,13 @@ def people_ask(update, context):
     help_what = query.data.replace('ask_', '')
 
     if help_what == 'vpn_increase_traffic':
-        text = ("<b>خیر، به طول کلی استفاده از vpn باعث افزایش مصرف ترافیک نمیشه!"
-                "\n\nدر جهان، vpn برای افزایش امنیت استفاده میشه، بعضی از vpn ها رمزنگاری رو به درخواست های شما اضافه میکنن"
-                " که باعث امنیت بالاتر میشه و حجم مصرف رو مقدار خیلی کمی افزایش میده."
-                "\n\nدر دیگر موارد، vpn ها مصرف ترافیک رو افزایش نمیدن</b>")
+        text = ("<b>خیر، به طول کلی استفاده از vpn باعث افزایش مصرف ترافیک نمیشود!"
+                "\n\nدر مواردی که vpn اطلاعات شما را رمزنگاری کند ترافیک مصرفی مقدار کمی افزایش پیدا میکند"
+                "\nرمزنگاری امنیت را افزایش میدهد، همچنین در ربات میتوانید ویژگی رمزنگاری را برای سرویس خودتان روشن کنید."
+                "\n\nدر دیگر موارد، vpn ها مصرف ترافیک رو افزایش نمیدهند</b>")
 
     elif help_what == 'can_i_remove_service':
-        text = "<b>بله، میتونید به هر دلیلی سرویس مورد نظر خودتون رو بعد از خرید حذف کنید و مبلغ باقی مونده از سرویس به حساب شما برمیگرده.</b>"
-
-    elif help_what == 'what_if_service_blocked':
-        text = ("<b>اگر سرویس شما بلاک بشه، بعد از حل مشکل مبلغ خسارت حساب میشه و به کیف پول شما اضافه میشه."
-                "همچنین فورا یک سرویس جدید از طریق ایمیل و ربات براتون ارسال میشه که میتونید استفاده کنید.</b>")
-
-    else:  # help_what == 'persian_web_dont_open'
-        text = "<b>دلیل این امر، افزایش امنیت سرویس ها است، بعضی از سایت های ایرانی ip شمارو در صورتی که از ایران نباشه گزارش میکنن و این باعث فیلتر شدن سرور ها میشه.</b>"
+        text = "<b>بله، میتوانید به هر دلیلی سرویس مورد نظر خودتان را بعد از خرید حذف کنید و مبلغ باقی مانده از سرویس به حساب شما برمیگردد.</b>"
 
     keyboard = [
         [InlineKeyboardButton("برگشت ⤶", callback_data="people_ask_help")]
@@ -1171,7 +1170,7 @@ def support(update, context):
     query = update.callback_query
     keyboard = [[InlineKeyboardButton("پرایوت", url="https://t.me/fupport")],
                 [InlineKeyboardButton("برگشت ⤶", callback_data="main_menu")]]
-    query.edit_message_text('از طریق روش های زیر میتونید با پشتیبان صحبت کنید',
+    query.edit_message_text('از طریق روش های زیر میتوانید با پشتیبان صحبت کنید',
                             reply_markup=InlineKeyboardMarkup(keyboard))
 
 
@@ -1362,7 +1361,6 @@ def setting(update, context):
     keyboard = [
         [InlineKeyboardButton("نوتیفیکیشن سرویس", callback_data="service_notification"),
          InlineKeyboardButton("نوتیفیکیشن کیف‌پول", callback_data="wallet_notification")],
-        [InlineKeyboardButton("• تراکنش های مالی", callback_data="financial_transactions")],
         [InlineKeyboardButton("برگشت ↰", callback_data="main_menu")]
     ]
     query.edit_message_text(text='*در این قسمت میتونید تنظیمات ربات رو مشاهده و یا شخصی سازی کنید:*',
@@ -1485,7 +1483,7 @@ def financial_transactions(update, context):
                 list_of_t) else None
             keyboard.append(keyboard_backup)
 
-        keyboard.append([InlineKeyboardButton("برگشت ↰", callback_data="setting")])
+        keyboard.append([InlineKeyboardButton("برگشت ↰", callback_data="wallet_page")])
 
         query.edit_message_text(text=f"لیست تراکنش های مالی شما: \n" + "\n\n".join(get_purchased),
                                 reply_markup=InlineKeyboardMarkup(keyboard))
@@ -1527,6 +1525,7 @@ def wallet_page(update, context):
             [InlineKeyboardButton("تازه سازی ⟳", callback_data=f"wallet_page"),
              InlineKeyboardButton("افزایش موجودی ↟", callback_data=f"buy_credit_volume")],
             [InlineKeyboardButton("مشاهده تراکنش های کیف پول", callback_data=f"financial_transactions_wallet")],
+            [InlineKeyboardButton("• تراکنش های مالی", callback_data="financial_transactions")],
             [InlineKeyboardButton("برگشت ↰", callback_data="main_menu")]]
 
         text_ = (
@@ -1878,7 +1877,7 @@ def pay_from_wallet(update, context):
             get_p_id = context.user_data['purchased_id']
             check = send_clean_for_customer(query, context, get_p_id)
 
-            if check:
+            if check['success']:
                 get_db = context.user_data['package'][0][7]
 
                 price = ranking_manage.discount_calculation(query.from_user['id'], direct_price=get_db)
@@ -1910,13 +1909,13 @@ def remove_service(update, context):
     get_uuid = sqlite_manager.select(column='client_id,inbound_id,name,id,product_id', table='Purchased',
                                      where=f'client_email = "{email}"')
 
-    get_server_domain = sqlite_manager.select(column='server_domain', table='Product',
+    get_server_domain = sqlite_manager.select(column='server_domain,price', table='Product',
                                               where=f'id = {get_uuid[0][4]}')
 
     ret_conf = api_operation.get_client(email, get_server_domain[0][0])
 
     try:
-        if int(ret_conf['obj']['total']):
+        if int(ret_conf['obj']['total']) and get_server_domain[0][1]:
             upload_gb = int(ret_conf['obj']['up']) / (1024 ** 3)
             download_gb = int(ret_conf['obj']['down']) / (1024 ** 3)
             usage_traffic = round(upload_gb + download_gb, 2)
@@ -1930,7 +1929,7 @@ def remove_service(update, context):
             price = ranking_manage.discount_calculation(chat_id, left_traffic, days_lefts)
 
         else:
-            price = days_lefts = left_traffic = 0
+            price, days_lefts, left_traffic = 0, 0, 0
 
         if 'remove_service_' in query.data:
             keyboard = [[InlineKeyboardButton("✓ بله مطمئنم", callback_data=f"accept_rm_ser_{email}")],
@@ -2820,3 +2819,132 @@ def service_statistics(update, context):
 
         else:
             query.answer('شما صاحب سرویسی نیستید!')
+
+
+# @handle_telegram_exceptions
+def upgrade_or_create(traffic, user, context):
+    chat_id = int(user['id'])
+
+    try:
+
+        traffic = round(int(traffic) / 1000, 2)
+
+        get_id = sqlite_manager.select('id', table='Product', where=f'name LIKE "gift%"')
+
+        if not get_id:
+            get_data = {'inbound_id': 2, 'active': 0,
+                        'name': f'gift_{private.country_main}', 'country': private.country_main,
+                        'period': 1, 'traffic': traffic,
+                        'price': 0, 'date': datetime.now(pytz.timezone('Asia/Tehran')),
+                        'is_personalization': None, 'domain': PAY_PER_USE_DOMAIN,
+                        'server_domain': private.DOMAIN, 'status': 0}
+
+            get_id = sqlite_manager.insert('Product', rows=[get_data])
+
+        else:
+            get_id = get_id[0][0]
+
+
+        get_purchased_id = sqlite_manager.select('id', table='Purchased',
+                                                 where=f'product_id = {get_id} AND chat_id = {user["id"]}')
+        if get_purchased_id:
+            task.upgrade_service(context, get_purchased_id[0][0], [(0, 0, 0, 0, 0, traffic, 1),])
+            context.bot.send_message(f'🔵 کانفیگ شماره {get_purchased_id[0][0]} ارتقا یافت!', chat_id=chat_id)
+            return {'msg': 'upgrade service', 'purchased_id': get_purchased_id[0][0]}
+
+        else:
+            id_ = sqlite_manager.insert('Purchased', rows=[
+                {'active': 1, 'status': 1, 'name': user["first_name"], 'user_name': user["username"],
+                 'chat_id': user['id'], 'product_id': get_id, 'notif_day': 1, 'notif_gb': 0}])
+
+            get_res = send_clean_for_customer(1, context, id_)
+            return get_res
+    except Exception as e:
+        ready_report_problem_to_admin(context, text='Error In Daily Gift', error=e, chat_id=chat_id)
+
+
+@handle_telegram_exceptions
+def daily_gift(update, context):
+    query = update.callback_query
+    user = query.from_user
+    # user = {'id': 1,'first_name': 1,'username': 1}
+    chat_id = int(user["id"])
+    is_user_start_bot = sqlite_manager.select(table='User', where=f'chat_id = {chat_id}')
+    if not is_user_start_bot:
+        query.answer('کاربر عزیز، ابتدا ربات رو استارت کنید و دوباره اقدام کنید:'
+                     '\n@fensor_bot', show_alert=True)
+        return
+
+    get_user_last_gift_date = sqlite_manager.select(column='date',
+                                                    table='Gift_service',
+                                                    where=f'chat_id = {chat_id}',
+                                                    order_by='id DESC',
+                                                    limit=1)
+
+    is_this_24_hours = True
+    now = datetime.now(pytz.timezone('Asia/Tehran'))
+    time_left = timedelta(days=0)
+
+    if get_user_last_gift_date:
+        date = datetime.strptime(get_user_last_gift_date[0][0], '%Y-%m-%d %H:%M:%S')
+        time_left = (now.replace(tzinfo=None) - date)
+        is_this_24_hours = time_left >= timedelta(days=1)
+
+
+    if is_this_24_hours:
+        gifts_chance = {'0': 2, '100': 10, '200': 9, '300': 8, '400': 7, '500': 6, '600': 5, '700': 4, '800': 3, '900': 2, '1000': 1}
+
+        chance = random.choices(list(gifts_chance.keys()), weights=list(gifts_chance.values()))[0]
+
+        text = 'متاسفانه امروز برنده نشدی!\nفردا دوباره امتحان کن.'
+
+        if int(chance):
+            get_final_res = upgrade_or_create(chance, user, context)
+            traffic_formated = format_mb_traffic(int(chance))
+
+            text = (f'🎉 تبریک، شما برنده هدیه {traffic_formated} شدید!'
+                    '\nجزئیات از طریق ربات ارسال شد.')
+
+            if get_final_res.get('msg') == 'Forbidden: bot was blocked by the user':
+                text = 'شما ربات را بلاک کردید!\nتلاش برای ارسال سرویس ناموفق بود!'
+
+        sqlite_manager.insert('Gift_service', rows=[{'name': user['first_name'], 'user_name': user['username'],
+                                                     'chat_id': chat_id, 'traffic': int(chance),
+                                                     'date': now.strftime('%Y-%m-%d %H:%M:%S')}])
+
+        query.answer(text, show_alert=True)
+        report_status_to_admin(context, text=f'User Win Gift Service [{chance}MB]', chat_id=chat_id)
+
+    else:
+        time_left = (timedelta(days=1) - time_left).total_seconds()
+        time_left_hours = int(time_left // 3600)
+        time_left_minutes = int((time_left % 3600) // 60)
+
+        time_text = ''
+        if time_left_hours:
+            time_text += f'{time_left_hours} ساعت'
+        if time_left_hours and time_left_minutes:
+            time_text += ' و '
+        if time_left_minutes:
+            time_text += f'{time_left_minutes} دقیقه'
+
+        text = (f'🕒 فقط {time_text} مونده!'
+                f'\nهنوز زمان برای دریافت هدیه تموم نشده. لطفا بعد از این زمان مراجعه کنید.')
+
+        query.answer(text, show_alert=True)
+
+@handle_telegram_exceptions
+def daily_gift_message(update, context):
+    target_chat_id = context.args[0]
+
+    text = (
+        f"به عنوان تشکر از حمایت شما؛"
+        f"\nهر روز یک سرویس تا 1 گیگابایت هدیه بگیرید!"
+        f"\n\nبرای دریافت هدیه‌ی روزانه، دکمه زیر را فشار دهید."
+        f"\n\nاز اعتماد شما متشکریم و امیدواریم که از هدیه‌ها لذت ببرید."
+    )
+
+    keyboard = [[InlineKeyboardButton("دریافت هدیه 🎁", callback_data="daily_gift")]]
+
+    context.bot.send_message(chat_id=target_chat_id, text=text,
+                             reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')

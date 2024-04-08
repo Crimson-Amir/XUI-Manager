@@ -15,7 +15,7 @@ from tasks import (show_servers, get_service_of_server, payment_page, get_servic
                    admin_reserve_service, people_ask, pay_per_use, pay_per_use_calculator, change_infiniti_service_status,
                    report_problem_by_user, tickect_by_user, service_advanced_option, rank_page, subcategory,
                    change_service_ownership_conver, hide_buttons, admin_all_config, all_services, admin_server_detail,
-                   service_statistics)
+                   service_statistics, daily_gift, daily_gift_message)
 
 from utilities import not_ready_yet, just_for_show, message_to_user, alredy_have_show, not_for_depleted_service
 
@@ -56,7 +56,8 @@ def main():
         'say_to_customer_of_server': say_to_customer_of_server,
         'add_credit_to_customer_wallet': add_credit_to_server_customer_wallet,
         'add_credit_to_customer': add_credit_to_customer,
-        'rank_up': admin_rank_up
+        'rank_up': admin_rank_up,
+        'daily_gift_message': daily_gift_message
     }
 
     for key, value in commands.items():
@@ -76,6 +77,8 @@ def main():
     dp.add_handler(CallbackQueryHandler(service_advanced_option, pattern=r'change_server_(.*)'))
 
     dp.add_handler(CallbackQueryHandler(show_servers, pattern='select_server'))
+    dp.add_handler(CallbackQueryHandler(daily_gift, pattern='daily_gift'))
+
     dp.add_handler(CallbackQueryHandler(service_statistics, pattern=r'service_statistics_(.*)'))
     dp.add_handler(CallbackQueryHandler(my_service, pattern=r'my_service(.*)'))
     dp.add_handler(CallbackQueryHandler(all_services, pattern=r'adm_check_all_conf(.*)'))
@@ -187,9 +190,9 @@ def main():
     dp.add_handler(CallbackQueryHandler(get_service_of_server))
 
     job = updater.job_queue
-    job.run_repeating(check_all_configs, interval=100, first=0)
-    job.run_repeating(pay_per_use_calculator, interval=3600, first=0)
-    job.run_repeating(statistics_timer, interval=STATISTICS_TIMER_HORSE * 3600, first=0)
+    job.run_repeating(check_all_configs, interval=100)
+    job.run_repeating(pay_per_use_calculator, interval=3600)
+    job.run_repeating(statistics_timer, interval=STATISTICS_TIMER_HORSE * 3600)
 
     updater.start_polling()
     updater.idle()
