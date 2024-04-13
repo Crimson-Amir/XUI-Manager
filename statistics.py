@@ -105,17 +105,13 @@ def reports_func(data):
         get_user_usage = [{user_purchased[0]: user_purchased[1]} for user_purchased in eval(get_date[1]).items() if user_purchased[0] in purchased]
         user_usage_dict[get_date[2]] = get_user_usage
 
-    detail_text, final_dict, final_traffic, avreage_traffic, index, last_time = 'None', {}, 0, 0, 1, timedelta(hours=STATISTICS_TIMER_HORSE)
+    detail_text, final_dict, final_traffic, avreage_traffic, index = 'None', {}, 0, 0, 1
 
     if period == 'day':
         for index, (timestamp, usage_list) in enumerate(user_usage_dict.items()):
             time = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
 
-            if index:
-                first_time = time - last_time
-            else:
-                first_time = time - timedelta(hours=STATISTICS_TIMER_HORSE)
-            last_time = time
+            first_time = time - timedelta(hours=STATISTICS_TIMER_HORSE)
 
             usage_detail, get_traffic = [], 0
 
@@ -131,9 +127,11 @@ def reports_func(data):
             detail_text += ''.join(usage_detail[:5]) if get_purchased[0] == 'all' else ''
 
             final_traffic += get_traffic
-            final_dict[f'{first_time.strftime("%H")} to {time.strftime("%H")}'] = get_traffic
+            final_dict[time.strftime("%H:00")] = get_traffic
 
         avreage_traffic = (final_traffic / 3) / index
+
+
 
     elif period == 'week':
         for index, our_date in enumerate(datetime_range(date, date_now, timedelta(days=1))):
@@ -152,7 +150,7 @@ def reports_func(data):
             detail_text += ''.join(usage_detail[:5]) if get_purchased[0] == 'all' else ''
 
             final_traffic += get_traff
-            final_dict[f"{our_date.strftime('%a %d')}"] = get_traff
+            final_dict[f"{our_date.strftime('%d')}"] = get_traff
 
         avreage_traffic = final_traffic / index
 
@@ -182,7 +180,7 @@ def reports_func(data):
                 detail_text += ''.join(usage_detail[:5]) if get_purchased[0] == 'all' else ''
 
                 final_traffic += get_traff
-                final_dict[f"{our_date.strftime('%m-%d')}"] = get_traff
+                final_dict[f"{our_date.strftime('%d')}"] = get_traff
 
             avreage_traffic = final_traffic / index
             break
@@ -198,7 +196,7 @@ def report_section(update, context):
     data = [chat_id, data_org[1], data_org[2]]
     get_data = reports_func(data)
 
-    if sum(get_data[1].values()) == 0:
+    if sum(get_data[1].values()) == 0 and not query.message.photo:
         keyboard = [[InlineKeyboardButton("برگشت ↰", callback_data='main_menu')]]
         query.edit_message_text(text='<b>مصرفی برای شما ثبت نشده است.</b>', reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')
         return
@@ -252,4 +250,4 @@ def report_section(update, context):
 
 
 # print(reports_func([81532053, 'month', 'week']))
-# statistics_timer(1)
+# statistics_timer(1)x
