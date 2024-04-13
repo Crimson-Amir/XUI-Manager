@@ -1,4 +1,4 @@
-import sqlite3
+import sqlite3 
 
 
 class ManageDb:
@@ -43,24 +43,26 @@ class ManageDb:
         where_ = f'WHERE {where}' if where else ''
 
         sql = f"SELECT {distinct_}{column} FROM {table} {where_} {order_by_} {limit_}"
+
+        # print(f"SELECT {distinct_}{column} FROM {table} {where_} {order_by_} {limit_}")
         self.cursor.execute(sql)
         self.db_values = self.cursor.fetchall()
         return self.db_values
 
     @connecting_manage
-    def insert(self, table: str, rows: list, custom_order=""):
+    def insert(self, table: str, rows: dict, custom_order=""):
         """
         :param table: name of table
         :param rows: [{'name': 'amir', 'family':'any'}, {...}, {...}]
         :param custom_order
         """
-        column = ', '.join(rows[0].keys())
-        touples = []
+        # column = ', '.join(rows[0].keys())
+        # touples = []
 
-        for row in rows:
-            values = [f"'{val}'" for val in row.values()]
-            touples.append(f"({', '.join(values)})")
-        ex = self.cursor.execute(f'INSERT INTO {table} ({column}) VALUES {", ".join(touples)}')
+        column = ', '.join(rows.keys())
+        values = [f"'{val}'" for val in rows.values()]
+
+        ex = self.cursor.execute(f'INSERT INTO {table} ({column}) VALUES {", ".join(values)}')
         self.db.commit()
         return self.cursor.lastrowid
 
@@ -116,7 +118,7 @@ class ManageDb:
     def custom_multi(self, *order):
         for order_ in order:
             self.cursor.execute(order_)
-            self.db.commit()
+        self.db.commit()
 
 # t = {
 #     "student": {

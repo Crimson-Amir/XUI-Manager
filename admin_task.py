@@ -85,7 +85,7 @@ def add_service(update, context):
             if user_message['update']:
                 sqlite_manager.update({'Product': get_data}, where=f'id = {user_message["update"]}')
             else:
-                sqlite_manager.insert('Product', [get_data])
+                sqlite_manager.insert('Product', get_data)
             update.message.reply_text('OK')
         except Exception as e:
             print(e)
@@ -188,6 +188,10 @@ def add_client_bot(purchased_id):
         }
 
         create = api_operation.add_client(data, get_service_db[0][11])
+
+        check_servise_available = api_operation.get_client(email_, domain=get_service_db[0][11])
+        if not check_servise_available['obj']: return False, create, 'service do not create'
+
         get_cong = api_operation.get_client_url(email_, int(get_service_db[0][1]),
                                                 domain=get_service_db[0][10], server_domain=get_service_db[0][11])
 
@@ -195,15 +199,15 @@ def add_client_bot(purchased_id):
                                              'client_id': id_, 'date': datetime.now(pytz.timezone('Asia/Tehran')),
                                              'details': get_cong, 'active': 1, 'status': 1}},
                               where=f'id = {purchased_id}')
-        print(create)
+
         if create['success']:
-            return True, create
+            return True, create, 'service create success'
         else:
-            return False, create
+            return False, create, 'create service is failed'
 
     except Exception as e:
         utilities.report_problem_to_admin_witout_context('ADD CLIENT BOT [ADMIN TASK]', chat_id=None, error=e)
-        return False
+        return False, None, f'Error: {e}'
 
 
 def run_in_system(update, context):
@@ -265,7 +269,7 @@ def clear_depleted_service(update, context):
 
         customer_service = sqlite_manager.select(column='chat_id,name,client_email,inbound_id', table='Purchased', where=f'status = 0 and inbound_id = {get_inbound_id}')
         sqlite_manager.select(column='server_domain', table='Product',
-                                                  where=f'id = "{customer_service[0][3]}"')
+                              where=f'id = "{customer_service[0][3]}"')
 
         reason = update.message.reply_to_message.text if update.message.reply_to_message else 'عدم تمدید و یا ارتقا سرویس'
         text = 'سرویس شما با نام {} که قبلا منقضی شده بود، حذف شد!\nعلت: '
@@ -350,9 +354,9 @@ def check_all_configs(chat_id, inbound_id, product_id=None):
             for client in config['clientStats']:
                 if client['inboundId'] == inbound_id:
                     sqlite_manager.insert(table='Purchased',
-                                          rows=[{'product_id': product_id,'chat_id': chat_id, 'inbound_id': 5, 'client_email': client['email'],
-                                                 'client_id': client['email'][:-3], 'date': datetime.now(pytz.timezone('Asia/Tehran')),
-                                                 'details': 'False', 'active': 0, 'status': 1}])
+                                          rows={'product_id': product_id,'chat_id': chat_id, 'inbound_id': 5, 'client_email': client['email'],
+                                                'client_id': client['email'][:-3], 'date': datetime.now(pytz.timezone('Asia/Tehran')),
+                                                'details': 'False', 'active': 0, 'status': 1})
 
 # check_all_configs(6450325872, 5)
 
@@ -369,7 +373,7 @@ def admin_rank_up(update, context):
         text = f'رنک شما توسط ادمین ارتقا یافت.\n\nویژگی های این رنک:\n {rank_access_}'
 
         sqlite_manager.select(column='name,user_name', table='User',
-                                                    where=f'chat_id = {get_user_chat_id}')
+                              where=f'chat_id = {get_user_chat_id}')
 
         ranking_manage.rank_up(get_rank_name, get_user_chat_id)
         message_to_user(update, context, message=text, chat_id=get_user_chat_id)
@@ -380,8 +384,8 @@ def admin_rank_up(update, context):
         rank_name_ = next(iter(rank_access))
         level = 0
 
-        sqlite_manager.insert(table='Rank', rows=[{'name': None, 'user_name': None, 'chat_id': get_user_chat_id,
-                                                   'level': level, 'rank_name': rank_name_}])
+        sqlite_manager.insert(table='Rank', rows={'name': None, 'user_name': None, 'chat_id': get_user_chat_id,
+                                                  'level': level, 'rank_name': rank_name_})
         report_status_to_admin(context, 'I Create Rank For User. Try Again!', get_user_chat_id)
 
     except Exception as e:

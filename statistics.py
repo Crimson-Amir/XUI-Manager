@@ -105,12 +105,18 @@ def reports_func(data):
         get_user_usage = [{user_purchased[0]: user_purchased[1]} for user_purchased in eval(get_date[1]).items() if user_purchased[0] in purchased]
         user_usage_dict[get_date[2]] = get_user_usage
 
-    detail_text, final_dict, final_traffic, avreage_traffic, index = 'None', {}, 0, 0, 1
+    detail_text, final_dict, final_traffic, avreage_traffic, index, last_time = 'None', {}, 0, 0, 1, timedelta(hours=STATISTICS_TIMER_HORSE)
 
     if period == 'day':
         for index, (timestamp, usage_list) in enumerate(user_usage_dict.items()):
             time = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
-            first_time = time - timedelta(hours=STATISTICS_TIMER_HORSE)
+
+            if index:
+                first_time = time - last_time
+            else:
+                first_time = time - timedelta(hours=STATISTICS_TIMER_HORSE)
+            last_time = time
+
             usage_detail, get_traffic = [], 0
 
             for usage in usage_list:
