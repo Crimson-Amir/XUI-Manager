@@ -94,7 +94,7 @@ class Task(ManageDb):
                     traffic = int(user_db[0][5] * (1024 ** 3))
                     my_data = now + timedelta(days=user_db[0][6])
                     my_data = int(my_data.timestamp() * 1000)
-                    print(api_operation.reset_client_traffic(client_id, client_email, get_server_domain[0][0]))
+                    print(api_operation.reset_client_traffic(int(get_client[0][7]), client_email, get_server_domain[0][0]))
 
                 data = {
                     "id": int(get_client[0][7]),
@@ -253,8 +253,7 @@ def get_card_pay_evidence(update, context):
         price = ranking_manage.discount_calculation(query.from_user['id'], direct_price=package[0][7], more_detail=True)
 
         context.user_data['package'] = package
-        keyboard = [[InlineKeyboardButton("ساخت ", callback_data="send_main_message")],
-                    [InlineKeyboardButton("صفحه اصلی ⤶", callback_data="send_main_message")]]
+        keyboard = [[InlineKeyboardButton("صفحه اصلی ⤶", callback_data="send_main_message")]]
 
         ex = sqlite_manager.select('id', 'Purchased', where=f'active = 0 and chat_id = {user["id"]}', limit=1)
 
