@@ -139,6 +139,19 @@ def handle_telegram_exceptions(func):
     return wrapper
 
 
+def handle_telegram_exceptions_without_user_side(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            side = 'Telgram Func'
+            print(f"[{side}] An error occurred in {func.__name__}: {e}")
+            report_problem(func.__name__, e, side)
+
+    return wrapper
+
+
 @handle_telegram_exceptions
 def show_servers(update, context):
     query = update.callback_query
@@ -570,7 +583,7 @@ def server_detail_customer(update, context):
         if ret_conf['obj']['total'] != 0:
             total_traffic = round(ret_conf['obj']['total'] / (1024 ** 3), 2)
 
-        if int(ret_conf['obj']['expiryTime']) != 0:
+        if int(ret_conf['obj']['expiryTime']) != 0 and int(ret_conf['obj']['total']) != 0:
             expiry_timestamp = ret_conf['obj']['expiryTime'] / 1000
             expiry_date = datetime.fromtimestamp(expiry_timestamp)
             expiry_month = expiry_date.strftime("%Y/%m/%d")
@@ -1181,35 +1194,40 @@ def support(update, context):
 
 
 def disable_service_in_data_base(context, list_of_notification, user, not_enogh_credit=False):
-    print(list_of_notification, user)
-    text = ("🔴 اطلاع رسانی اتمام سرویس"
-            f"\nدرود {list_of_notification[0][3]} عزیز، سرویس شما با نام {user[2]} به پایان رسید!"
-            f"\nدر صورتی که تمایل دارید نسبت به بررسی و یا تمدید سرویس اقدام کنید.")
-
-    if not_enogh_credit:
-        text = ("🔴 اطلاع رسانی اتمام سرویس و تمدید خودکار ناموفق"
+    try:
+        print(list_of_notification, user)
+        text = ("🔴 اطلاع رسانی اتمام سرویس"
                 f"\nدرود {list_of_notification[0][3]} عزیز، سرویس شما با نام {user[2]} به پایان رسید!"
-                f"\nاعتبار شما برای تمدید خودکار سرویس کافی نبود!")
+                f"\nدر صورتی که تمایل دارید نسبت به بررسی و یا تمدید سرویس اقدام کنید.")
 
-    keyboard = [
-        [InlineKeyboardButton("خرید سرویس جدید", callback_data=f"select_server"),
-         InlineKeyboardButton("تمدید همین سرویس", callback_data=f"upgrade_service_customize_{user[0]}")],
-        [InlineKeyboardButton("❤️ تجربه استفاده از فری‌بایت رو به اشتراک بگذارید:", callback_data=f"just_for_show")],
-        [InlineKeyboardButton("معمولی بود",
-                              callback_data=f"rate_ok&{list_of_notification[0][0]}_{user[0]}"),
-         InlineKeyboardButton("عالی بود",
-                              callback_data=f"rate_perfect&{list_of_notification[0][0]}_{user[0]}")],
-        [InlineKeyboardButton("ناامید شدم",
-                              callback_data=f"rate_bad&{list_of_notification[0][0]}_{user[0]}"),
-         InlineKeyboardButton("نظری ندارم",
-                              callback_data=f"rate_haveNotIdea&{list_of_notification[0][0]}_{user[0]}")]
-    ]
-    context.bot.send_message(user[1], text=text, reply_markup=InlineKeyboardMarkup(keyboard))
-    sqlite_manager.update({'Purchased': {'status': 0}}, where=f'id = {user[0]}')
+        if not_enogh_credit:
+            text = ("🔴 اطلاع رسانی اتمام سرویس و تمدید خودکار ناموفق"
+                    f"\nدرود {list_of_notification[0][3]} عزیز، سرویس شما با نام {user[2]} به پایان رسید!"
+                    f"\nاعتبار شما برای تمدید خودکار سرویس کافی نبود!")
 
-    utilities.report_status_to_admin(context, text=f'The user service has ended.\n'
-                                                   f'User Name: {list_of_notification[0][3]}'
-                                                   f'\nService id: {user[0]}', chat_id=list_of_notification[0][0])
+        keyboard = [
+            [InlineKeyboardButton("خرید سرویس جدید", callback_data=f"select_server"),
+             InlineKeyboardButton("تمدید همین سرویس", callback_data=f"upgrade_service_customize_{user[0]}")],
+            [InlineKeyboardButton("❤️ تجربه استفاده از فری‌بایت رو به اشتراک بگذارید:", callback_data=f"just_for_show")],
+            [InlineKeyboardButton("معمولی بود",
+                                  callback_data=f"rate_ok&{list_of_notification[0][0]}_{user[0]}"),
+             InlineKeyboardButton("عالی بود",
+                                  callback_data=f"rate_perfect&{list_of_notification[0][0]}_{user[0]}")],
+            [InlineKeyboardButton("ناامید شدم",
+                                  callback_data=f"rate_bad&{list_of_notification[0][0]}_{user[0]}"),
+             InlineKeyboardButton("نظری ندارم",
+                                  callback_data=f"rate_haveNotIdea&{list_of_notification[0][0]}_{user[0]}")]
+        ]
+        sqlite_manager.update({'Purchased': {'status': 0}}, where=f'id = {user[0]}')
+
+        utilities.report_status_to_admin(context, text=f'The user service has ended.\n'
+                                                       f'User Name: {list_of_notification[0][3]}'
+                                                       f'\nService id: {user[0]}', chat_id=list_of_notification[0][0])
+
+        context.bot.send_message(user[1], text=text, reply_markup=InlineKeyboardMarkup(keyboard))
+
+    except Exception as e:
+        ready_report_problem_to_admin(context, 'disable_service_in_data_base', user[0], e)
 
 
 def check_all_configs(context, context_2=None):
@@ -1320,18 +1338,18 @@ def check_all_configs(context, context_2=None):
                                 text = ("🔵 اطلاع رسانی تاریخ انقضا سرویس"
                                         f"\nدرود {list_of_notification[0][3]} عزیز، از سرویس شما با نام {user[2]} کمتر از {int(time_left) + 1} روز باقی مونده."
                                         f"\nدر صورتی که تمایل دارید نسبت به بررسی و یا تمدید سرویس اقدام کنید.")
+                                sqlite_manager.update({'Purchased': {'notif_day': 1}}, where=f'id = "{user[0]}"')
                                 context.bot.send_message(user[1], text=text,
                                                          reply_markup=InlineKeyboardMarkup(keyboard))
-                                sqlite_manager.update({'Purchased': {'notif_day': 1}}, where=f'id = "{user[0]}"')
 
                             if not user[6] and traffic_percent >= list_of_notification[0][1]:
                                 text = ("🔵 اطلاع رسانی حجم سرویس"
                                         f"\nدرود {list_of_notification[0][3]} عزیز، شما {int(traffic_percent)} درصد حجم ترافیک سرویس {user[2]} رو مصرف کردید، "
                                         f"\nحجم باقی مونده از سرویس {format_traffic(traffic_left)} است. "
                                         f"\nدر صورتی که تمایل دارید نسبت به بررسی و یا تمدید سرویس اقدام کنید.")
+                                sqlite_manager.update({'Purchased': {'notif_gb': 1}}, where=f'id = "{user[0]}"')
                                 context.bot.send_message(user[1], text=text,
                                                          reply_markup=InlineKeyboardMarkup(keyboard))
-                                sqlite_manager.update({'Purchased': {'notif_gb': 1}}, where=f'id = "{user[0]}"')
 
 
 def rate_service(update, context):
@@ -2099,6 +2117,8 @@ def pay_per_use(update, context):
 def pay_per_use_calculator(context):
     get_all = api_operation.get_all_inbounds()
 
+    api_operation.restart_xray()
+
     get_from_db = sqlite_manager.select(column='id', table='Product', where=f'name LIKE "pay_per_use_%"')
     pay_per_use_products = [id_[0] for id_ in get_from_db]
 
@@ -2691,7 +2711,7 @@ def admin_server_detail(update, context):
         if int(ret_conf['obj']['total']) != 0:
             total_traffic = int(round(ret_conf['obj']['total'] / (1024 ** 3), 2))
 
-        if int(ret_conf['obj']['expiryTime']) != 0:
+        if int(ret_conf['obj']['expiryTime']) != 0 and int(ret_conf['obj']['total']) != 0:
             expiry_timestamp = ret_conf['obj']['expiryTime'] / 1000
             expiry_date = datetime.fromtimestamp(expiry_timestamp)
             expiry_month = expiry_date.strftime("%Y/%m/%d")
@@ -2708,8 +2728,7 @@ def admin_server_detail(update, context):
 
             context.user_data['period_for_upgrade'] = (expiry_date - purchase_date).days
             context.user_data['traffic_for_upgrade'] = total_traffic
-            keyboard = [
-                [InlineKeyboardButton("تمدید و ارتقا ↟", callback_data=f"upgrade_service_customize_{get_data[0][0]}")]]
+            keyboard = [[InlineKeyboardButton("تمدید و ارتقا ↟", callback_data=f"upgrade_service_customize_{get_data[0][0]}")]]
 
         elif int(ret_conf['obj']['total']) == 0:
             service_activate_status = 'غیرفعال سازی ⤈' if ret_conf['obj']['enable'] else 'فعال سازی ↟'
