@@ -1,5 +1,6 @@
 telegram_bot_token = "6308260945:AAGeqcuRyu3Lko7fclfekNQDtMK-oCKPuAM"
-auth = {'username': 'amir', 'password': 'amir'}
+auth = {'username': '6840091ecb325d4ae6c32bb7ec12a24c',
+ 'password': '103924d8b33449b8ccd2b0d22577b641'}
 PORT = 2053
 ADMIN_CHAT_ID = -1002115809340
 OTHER_ADMIN = [ADMIN_CHAT_ID, 6450325872]
