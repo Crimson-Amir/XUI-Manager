@@ -771,7 +771,11 @@ def personalization_service(update, context):
         period = period if period <= 500 else 500
 
     elif 'accept_personalization' in query.data:
-        id_ = context.user_data['personalization_service_id']
+        try: id_ = context.user_data['personalization_service_id']
+        except KeyError:
+            query.answer('عملیات منقضی شده است، لطفا از اول تلاش کنید.')
+            return
+        except Exception as e: raise e
 
         inbound_id = sqlite_manager.select(column='inbound_id,name,country,server_domain,domain,country',
                                            table='Product', where=f'id = {id_}')
@@ -852,7 +856,14 @@ def personalization_service_lu(update, context):
 
         context.user_data['personalization_client_lu_id'] = service_id
 
-    id_ = context.user_data['personalization_client_lu_id']
+    try:
+        id_ = context.user_data['personalization_client_lu_id']
+    except KeyError:
+        query.answer('عملیات منقضی شده است، لطفا از اول تلاش کنید.')
+        return
+    except Exception as e:
+        raise e
+
     get_data_from_db = sqlite_manager.select(table='User', where=f'chat_id = {query.message.chat_id}')
 
     traffic = max(abs(get_data_from_db[0][5]), 1)
@@ -963,10 +974,15 @@ def send_evidence_to_admin_for_upgrade(update, context):
         text = "- Check the new payment to the card [UPGRADE SERVICE]:\n\n"
 
     else:
-        task.upgrade_service(context, purchased_id)
-        keyboard = []
-        text_ = f'سرویس با موفقیت ارتقا یافت✅'
-        text = '- The user rank was sufficient to get the service without confirm [UPGRADE SERVICE]\n\n'
+        try:
+            task.upgrade_service(context, purchased_id)
+            keyboard = []
+            text_ = f'سرویس با موفقیت ارتقا یافت✅'
+            text = '- The user rank was sufficient to get the service without confirm [UPGRADE SERVICE]\n\n'
+        except Exception as e:
+            text = 'مشکلی وجود داشت!'
+            ready_report_problem_to_admin(context, text, chat_id=user.id, error=e)
+            raise e
 
     text += f"Name: {user['first_name']}\nUserName: @{user['username']}\nID: {user['id']}\n\n"
     service_detail = f"\n\nPeriod: {package[0][6]} Day\nTraffic: {package[0][5]}GB\nPrice: {price:,} T"
@@ -1904,7 +1920,7 @@ def remove_service(update, context):
         download_gb = int(ret_conf['obj']['down']) / (1024 ** 3)
         usage_traffic = round(upload_gb + download_gb, 2)
         total_traffic = int(ret_conf['obj']['total']) / (1024 ** 3)
-        left_traffic = total_traffic - usage_traffic
+        left_traffic = round((total_traffic - usage_traffic), 2)
 
         expiry_timestamp = ret_conf['obj']['expiryTime'] / 1000
         expiry_date = datetime.fromtimestamp(expiry_timestamp)
@@ -2227,7 +2243,7 @@ def send_ticket_to_admin(update, context):
 
     if update.message.photo:
         file_id = update.message.photo[-1].file_id
-        text += f"caption: {update.message.caption}" or 'Witout caption!'
+        text += f"\ncaption: {update.message.caption}" or 'Witout caption!'
         context.bot.send_photo(chat_id=ADMIN_CHAT_ID, photo=file_id, caption=text)
         update.message.reply_text(f'پیام شما ثبت شد. متشکریم!', reply_markup=InlineKeyboardMarkup(keyboard))
     elif update.message.text:
@@ -2834,7 +2850,7 @@ def daily_gift(update, context):
 
 
     if is_this_24_hours:
-        gifts_chance = {'0': 2, '100': 10, '200': 9, '300': 8, '400': 7, '500': 6, '600': 5, '700': 4, '800': 3, '900': 2, '1000': 1}
+        gifts_chance = {'0': 2, '100': 4, '200': 9, '300': 8, '400': 8, '500': 6, '600': 5, '700': 4, '800': 3, '900': 2, '1000': 1}
 
         chance = random.choices(list(gifts_chance.keys()), weights=list(gifts_chance.values()))[0]
 
