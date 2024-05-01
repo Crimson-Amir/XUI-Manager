@@ -2814,7 +2814,8 @@ def daily_gift(update, context):
             get_final_res = upgrade_or_create(chance, user, context)
             traffic_formated = format_mb_traffic(int(chance))
             if get_final_res.get('defualt_traffic'):
-                traffic_formated = f"{get_final_res.get('defualt_traffic')}  مگابایت"
+                traffic_right = get_final_res.get('defualt_traffic') * 1000
+                traffic_formated = f"{traffic_right}  مگابایت"
 
             text = (f'🎉 تبریک، شما برنده هدیه {traffic_formated} شدید!'
                     '\nجزئیات از طریق ربات ارسال شد.')
