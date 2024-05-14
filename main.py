@@ -26,7 +26,7 @@ from admin_task import (admin_add_update_inbound, add_service, all_service, del_
 
 import logging
 import requests
-from statistics import statistics_timer, STATISTICS_TIMER_HORSE, report_section
+from statistics import statistics_timer, STATISTICS_TIMER_HORSE, report_section, radar_section
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -100,6 +100,7 @@ def main():
     dp.add_handler(CallbackQueryHandler(pay_from_wallet, pattern=r'payment_by_wallet_upgrade_service_\d+'))
 
     dp.add_handler(CallbackQueryHandler(report_section, pattern=r'statistics_(.*)'))
+    dp.add_handler(CallbackQueryHandler(radar_section, pattern=r'internet_radar_section'))
     dp.add_handler(CallbackQueryHandler(remove_service, pattern=r'remove_service_(.*)'))
     dp.add_handler(CallbackQueryHandler(remove_service, pattern=r'accept_rm_ser_(.*)'))
     dp.add_handler(CallbackQueryHandler(report_problem_by_user, pattern=r'say_to_admin_(.*)'))
@@ -160,7 +161,7 @@ def main():
     dp.add_handler(CallbackQueryHandler(admin_server_detail, pattern=r'adm_view_service_(.*)'))
     dp.add_handler(CallbackQueryHandler(show_help, pattern=r'(.*)_help'))
 
-    dp.add_handler(CallbackQueryHandler(create_file_and_return, pattern=r'create_txt_file'))
+    dp.add_handler(CallbackQueryHandler(create_file_and_return, pattern=r'create_txt_file_(.*)'))
     dp.add_handler(CallbackQueryHandler(personalization_service_lu, pattern=r'upgrade_service_customize_\d+'))
     dp.add_handler(CallbackQueryHandler(personalization_service, pattern=r'personalization_service_\d+'))
     dp.add_handler(CallbackQueryHandler(personalization_service, pattern='accept_personalization'))
