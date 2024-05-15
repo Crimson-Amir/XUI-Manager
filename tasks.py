@@ -1204,13 +1204,13 @@ def disable_service_in_data_base(context, list_of_notification, user, not_enogh_
          InlineKeyboardButton("تمدید همین سرویس", callback_data=f"upgrade_service_customize_{user[0]}")]
     ]
 
-    if user[1] not in rate_list:
-        keyboard.extend([[InlineKeyboardButton("❤️ تجربه استفاده از فری‌بایت رو به اشتراک بگذارید:", callback_data=f"just_for_show")],
-                        [InlineKeyboardButton("معمولی بود", callback_data=f"rate_ok&{list_of_notification[0][0]}_{user[0]}"),
-                         InlineKeyboardButton("عالی بود", callback_data=f"rate_perfect&{list_of_notification[0][0]}_{user[0]}")],
-                        [InlineKeyboardButton("ناامید شدم", callback_data=f"rate_bad&{list_of_notification[0][0]}_{user[0]}"),
-                         InlineKeyboardButton("نظری ندارم", callback_data=f"rate_haveNotIdea&{list_of_notification[0][0]}_{user[0]}")]])
-        rate_list.append(user[1])
+    # if user[1] not in rate_list:
+    #     keyboard.extend([[InlineKeyboardButton("❤️ تجربه استفاده از فری‌بایت رو به اشتراک بگذارید:", callback_data=f"just_for_show")],
+    #                     [InlineKeyboardButton("معمولی بود", callback_data=f"rate_ok&{list_of_notification[0][0]}_{user[0]}"),
+    #                      InlineKeyboardButton("عالی بود", callback_data=f"rate_perfect&{list_of_notification[0][0]}_{user[0]}")],
+    #                     [InlineKeyboardButton("ناامید شدم", callback_data=f"rate_bad&{list_of_notification[0][0]}_{user[0]}"),
+    #                      InlineKeyboardButton("نظری ندارم", callback_data=f"rate_haveNotIdea&{list_of_notification[0][0]}_{user[0]}")]])
+    #     rate_list.append(user[1])
 
     sqlite_manager.update({'Purchased': {'status': 0}}, where=f'id = {user[0]}')
 
