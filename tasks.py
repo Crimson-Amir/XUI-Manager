@@ -2212,7 +2212,7 @@ def report_problem_by_user(update, context):
 
         problem = query.data.replace('get_ticket_priority', '')
 
-        keyboard = [[InlineKeyboardButton("بله", callback_data=f"ticket_send_{problem}")],
+        keyboard = [[InlineKeyboardButton("بله", callback_data=f"get_ticket_priority")],
                     [InlineKeyboardButton("برگشت", callback_data=f"report_problem_by_user")]]
 
         report_problem_by_user_utilitis(context, problem.replace('_', ' '), query.from_user)
