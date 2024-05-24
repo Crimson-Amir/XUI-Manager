@@ -2436,15 +2436,12 @@ def service_advanced_option(update, context):
         else:
             query.answer('مشکلی وجود داشت!')
 
-    except telegram.error.BadRequest as e:
-        if 'Message is not modified' in e:
-            query.answer('اطلاعات تغییر نکرده است')
-        else:
-            query.answer('مشکلی وجود داشت!')
-
     except Exception as e:
-        ready_report_problem_to_admin(context, text='service_advanced_option', chat_id=query.message.chat_id, error=e)
-        something_went_wrong(update, context)
+        if "specified new message content and reply markup are exactly the same" in str(e):
+            return query.answer('آپدیت نشد، احتمالا اطلاعات تغییری نکرده!')
+        else:
+            ready_report_problem_to_admin(context, text='service_advanced_option', chat_id=query.message.chat_id, error=e)
+            something_went_wrong(update, context)
 
 
 @handle_telegram_conversetion_exceptions
@@ -2813,7 +2810,7 @@ def daily_gift(update, context):
 
 
     if is_this_24_hours:
-        gifts_chance = {'0': 2, '100': 4, '200': 9, '300': 8, '400': 8, '500': 6, '600': 5, '700': 4, '800': 3, '900': 2, '1000': 1}
+        gifts_chance = {'0': 2, '100': 4, '200': 9, '300': 7, '400': 6, '500': 5, '600': 4, '700': 3, '800': 2, '900': 1, '1000': .2}
 
         chance = random.choices(list(gifts_chance.keys()), weights=list(gifts_chance.values()))[0]
 
