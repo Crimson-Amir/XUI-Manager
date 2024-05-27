@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 from extraData import url_format, datacenter_keys
+from arvanPlot import RadarPlot
 
 
 class SessionError(Exception):
@@ -65,7 +66,22 @@ class ArvanRadar:
         self._url_format = self._url_format + f'&date={date}&time={time}'
 
 
+class OptimizeProxy:
+    @staticmethod
+    def homogenization(data):
+        site_values = []
+        for site in data:
+            site_values.extend([list(val[:360] for val in site[1].values())])
+        return site_values
+
+    def average_platforms(self, data):
+        homogenization_data = self.homogenization(data)
+        ziped_data = [list(zip(*values)) for values in homogenization_data]
+        return [[round(sum(group) / len(group), 2) for group in ziped] for ziped in ziped_data]
+
+
+
 # a = ArvanRadar()
-# b = a.get_data('Hamrah_aval', 'Mobin_net', 'Irancell', 'Afranet', 'Pars_online', 'Host_iran', 'Tehran_1', 'Tehran_2')
-# p = plot.RadarPlot(b)
+# b = a.get_data('Hamrah_aval', 'Irancell', 'Mobin_net', 'Afranet', 'Pars_online', 'Host_iran', 'Tehran_1', 'Tehran_2')
+# p = RadarPlot(b)
 # a = p.make_plot_2()
