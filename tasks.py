@@ -2810,7 +2810,7 @@ def daily_gift(update, context):
 
 
     if is_this_24_hours:
-        gifts_chance = {'0': 2, '100': 4, '200': 9, '300': 7, '400': 6, '500': 5, '600': 4, '700': 3, '800': 2, '900': 1, '1000': .2}
+        gifts_chance = {'0': 5, '100': 4, '200': 5, '300': 0.5, '400': 0.2, '500': 0.1, '600': 0.05, '700': 0.01, '800': 0.001, '900': 0.0001, '1000': 0.000001}
 
         chance = random.choices(list(gifts_chance.keys()), weights=list(gifts_chance.values()))[0]
 
