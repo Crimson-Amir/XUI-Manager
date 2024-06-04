@@ -13,11 +13,14 @@ PRICE_PER_GB = 1_500
 PRICE_PER_DAY = 500
 
 telegram_bot_url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage"
-#GET_EVIDENCE = GET_EVIDENCE_PER = GET_EVIDENCE_CREDIT = GET_TICKET = GET_CONVER = 0
-GET_EVIDENCE, GET_EVIDENCE_PER, GET_EVIDENCE_CREDIT, GET_TICKET, GET_CONVER, REPLY_TICKET = 0, 0, 0, 0, 0, 0
 
-FLAG_IN_NAME = ':2'
 PAY_PER_USE_INBOUND_ID = 2
 PAY_PER_USE_DOMAIN = 'human.ggkala.shop'
 LOW_WALLET_CREDIT = 1_000
 TLS_INBOUND = 7
+
+
+# Cryptomus ---------------------------------------
+
+cryptomus_api_key = 'xbPjwvsT6qiypVVwYHvUsjp5giSH2WUQ75oBDuiHSM7Wi5Zu2t9h8R02R7WC1ptF6FLfeDq1gyYTcHP9Rf4N2dwNcNTWA1PlaAaY666VGxs9foah4UXuYfTLXQfsAebW'
+cryptomus_merchant_id = 'b493112a-350e-4c57-ad74-91b608a36af9'

@@ -29,7 +29,7 @@ class RadarPlot:
 
         for site in data:
             self.datacenter_names.append(site[0].replace('_', ' '))
-            self.site_values.extend([list(val[:300] for val in site[1].values())])
+            self.site_values.extend([list(val[:350] for val in site[1].values())])
 
         self.site_names = [[values for values in data[0][1].keys()]] * len(self.datacenter_names)
 

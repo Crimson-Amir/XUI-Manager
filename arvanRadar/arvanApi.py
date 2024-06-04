@@ -1,7 +1,5 @@
 import asyncio
 import aiohttp
-from extraData import url_format, datacenter_keys
-from arvanPlot import RadarPlot
 
 
 class SessionError(Exception):
@@ -42,7 +40,7 @@ class ArvanRequestFactory:
 
 
 class ArvanRadar:
-    def __init__(self):
+    def __init__(self, datacenter_keys, url_format):
         self.request_address_list = datacenter_keys
         self._url_format = url_format
 
@@ -83,5 +81,6 @@ class OptimizeProxy:
 
 # a = ArvanRadar()
 # b = a.get_data('Hamrah_aval', 'Irancell', 'Mobin_net', 'Afranet', 'Pars_online', 'Host_iran', 'Tehran_1', 'Tehran_2')
+# print(OptimizeProxy().average_platforms(b))
 # p = RadarPlot(b)
 # a = p.make_plot_2()
