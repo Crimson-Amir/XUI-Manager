@@ -2790,6 +2790,8 @@ def upgrade_or_create(traffic, user, context):
 @handle_telegram_exceptions
 def daily_gift(update, context):
     query = update.callback_query
+    query.answer('این ویژگی فعلا غیرفعال است!')
+    return
     user = query.from_user
     chat_id = int(user["id"])
     is_user_start_bot = sqlite_manager.select(table='User', where=f'chat_id = {chat_id}')
