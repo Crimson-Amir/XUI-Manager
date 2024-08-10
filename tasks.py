@@ -52,8 +52,21 @@ class Task(ManageDb):
 
     @handle_exceptions
     def return_server_countries(self):
-        plans = self.select(table='Product', where='active = 1')
-        unic_plans = {name[3]: name[4] for name in plans}
+        plans = self.custom(order="""
+SELECT DISTINCT name, country
+FROM Product pr
+JOIN (
+    SELECT product_id, COUNT(id) as active_count
+    FROM Purchased
+    WHERE status = 1
+    GROUP BY product_id
+) pu ON pu.product_id = pr.id
+WHERE pr.status = 1
+GROUP BY UPPER(country)
+HAVING sum(active_count) < 250
+        """)
+        unic_plans = {name[0]: name[1].capitalize() for name in plans}
+
         if not unic_plans:
             raise IndexError('There Is No Product!')
         return unic_plans
@@ -175,19 +188,25 @@ def show_servers(update, context):
     query = update.callback_query
 
     get_all_country = task.return_server_countries()
+    
+    if get_all_country:
+        keyboard = [[InlineKeyboardButton(key, callback_data=value)] for key, value in get_all_country.items()]
+    
+        text = ("<b>• سرور مورد نظر خودتون رو انتخاب کنید:"
+                "\n\n• بعد از خرید، لوکیشن سرویس قابل تغییر است.</b>")
+    
 
-    keyboard = [[InlineKeyboardButton(key, callback_data=value)] for key, value in get_all_country.items()]
+    else:
+        text = ('متاسفانه درحال حاضر سروری با ظرفیت خالی وجود ندارد!'
+                '\nلطفا بعدا بررسی کنید.')
+        keyboard = []
+        
     keyboard.append([InlineKeyboardButton("برگشت ↰", callback_data="main_menu")])
-
-    text = ("<b>• سرور مورد نظر خودتون رو انتخاب کنید:"
-            "\n\n• بعد از خرید، لوکیشن سرویس قابل تغییر است.</b>")
-
     query.edit_message_text(
         text=text,
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode='html'
     )
-
 
 @handle_telegram_exceptions
 def get_service_of_server(update, context):
@@ -2790,8 +2809,6 @@ def upgrade_or_create(traffic, user, context):
 @handle_telegram_exceptions
 def daily_gift(update, context):
     query = update.callback_query
-    query.answer('این ویژگی فعلا غیرفعال است!')
-    return
     user = query.from_user
     chat_id = int(user["id"])
     is_user_start_bot = sqlite_manager.select(table='User', where=f'chat_id = {chat_id}')
@@ -2817,7 +2834,7 @@ def daily_gift(update, context):
 
 
     if is_this_24_hours:
-        gifts_chance = {'0': 1, '100': 4, '200': 5, '300': 1, '400': 0.5, '500': 0.1, '600': 0.05, '700': 0.01, '800': 0.001, '900': 0.0001, '1000': 0.000001}
+        gifts_chance = {'0': 5, '100': 4, '200': 5, '300': 0.5, '400': 0.2, '500': 0.1, '600': 0.05, '700': 0.01, '800': 0.001, '900': 0.0001, '1000': 0.000001}
 
         chance = random.choices(list(gifts_chance.keys()), weights=list(gifts_chance.values()))[0]
 
