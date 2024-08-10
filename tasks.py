@@ -24,6 +24,7 @@ import functools
 from sqlite_manager import ManageDb
 import json
 import traceback
+from api_clean import XuiApiClean
 
 
 GET_EVIDENCE, GET_EVIDENCE_PER, GET_EVIDENCE_CREDIT, GET_TICKET, GET_CONVER, REPLY_TICKET = 0, 0, 0, 0, 0, 0
@@ -53,18 +54,18 @@ class Task(ManageDb):
     @handle_exceptions
     def return_server_countries(self):
         plans = self.custom(order="""
-SELECT DISTINCT name, country
-FROM Product pr
-JOIN (
-    SELECT product_id, COUNT(id) as active_count
-    FROM Purchased
-    WHERE status = 1
-    GROUP BY product_id
-) pu ON pu.product_id = pr.id
-WHERE pr.status = 1
-GROUP BY UPPER(country)
-HAVING sum(active_count) < 250
-        """)
+            SELECT DISTINCT name, country
+            FROM Product pr
+            JOIN (
+                SELECT product_id, COUNT(id) as active_count
+                FROM Purchased
+                WHERE status = 1
+                GROUP BY product_id
+            ) pu ON pu.product_id = pr.id
+            WHERE pr.status = 1
+            GROUP BY UPPER(country)
+            HAVING sum(active_count) < 250
+                    """)
         unic_plans = {name[0]: name[1].capitalize() for name in plans}
 
         if not unic_plans:
@@ -188,19 +189,19 @@ def show_servers(update, context):
     query = update.callback_query
 
     get_all_country = task.return_server_countries()
-    
+
     if get_all_country:
         keyboard = [[InlineKeyboardButton(key, callback_data=value)] for key, value in get_all_country.items()]
-    
+
         text = ("<b>• سرور مورد نظر خودتون رو انتخاب کنید:"
                 "\n\n• بعد از خرید، لوکیشن سرویس قابل تغییر است.</b>")
-    
+
 
     else:
         text = ('متاسفانه درحال حاضر سروری با ظرفیت خالی وجود ندارد!'
                 '\nلطفا بعدا بررسی کنید.')
         keyboard = []
-        
+
     keyboard.append([InlineKeyboardButton("برگشت ↰", callback_data="main_menu")])
     query.edit_message_text(
         text=text,
@@ -2119,8 +2120,12 @@ def pay_per_use(update, context):
     query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')
 
 
+def refresh_login(context): api_operation.refresh_connecion()
+
+
 @handle_telegram_exceptions_without_user_side
 def pay_per_use_calculator(context):
+
     get_all = api_operation.get_all_inbounds()
 
     get_from_db = sqlite_manager.select(column='id', table='Product', where=f'name LIKE "pay_per_use_%"')
