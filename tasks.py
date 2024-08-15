@@ -64,7 +64,7 @@ class Task(ManageDb):
             ) pu ON pu.product_id = pr.id
             WHERE pr.status = 1
             GROUP BY UPPER(country)
-            HAVING sum(active_count) < 250
+            HAVING sum(active_count) < 300
                     """)
         unic_plans = {name[0]: name[1].capitalize() for name in plans}
 
