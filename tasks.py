@@ -26,9 +26,9 @@ import json
 import traceback
 from api_clean import XuiApiClean
 
-
 GET_EVIDENCE, GET_EVIDENCE_PER, GET_EVIDENCE_CREDIT, GET_TICKET, GET_CONVER, REPLY_TICKET = 0, 0, 0, 0, 0, 0
-
+INBOUND_IDs_LIST = [13, 14]
+allow_user_in_server = 270
 
 class Task(ManageDb):
     def __init__(self):
@@ -53,7 +53,7 @@ class Task(ManageDb):
 
     @handle_exceptions
     def return_server_countries(self):
-        plans = self.custom(order="""
+        plans = self.custom(order=f"""
             SELECT DISTINCT name, country
             FROM Product pr
             JOIN (
@@ -64,20 +64,16 @@ class Task(ManageDb):
             ) pu ON pu.product_id = pr.id
             WHERE pr.status = 1
             GROUP BY UPPER(country)
-            HAVING sum(active_count) < 300
-                    """)
+            HAVING sum(active_count) < {allow_user_in_server}""")
         unic_plans = {name[0]: name[1].capitalize() for name in plans}
 
-        if not unic_plans:
-            raise IndexError('There Is No Product!')
         return unic_plans
 
     @handle_exceptions
     def upgrade_service(self, context, service_id, by_list=None):
         get_client = sqlite_manager.select(table='Purchased', where=f'id = {service_id}')
 
-        get_server_domain = sqlite_manager.select(column='server_domain', table='Product',
-                                                  where=f'id = {get_client[0][6]}')
+        get_server_domain = sqlite_manager.select(column='server_domain', table='Product', where=f'id = {get_client[0][6]}')
 
         if not by_list:
             user_db = sqlite_manager.select(table='User', where=f'chat_id = {get_client[0][4]}')
@@ -584,6 +580,8 @@ def server_detail_customer(update, context):
                                                    where=f'id = {get_data[0][6]}')
         get_server_domain = get_server_country[0][1]
         get_server_country = get_server_country[0][0].replace('سرور ', '').replace('pay_per_use_', '')
+        extra_text, inbound_id = '', get_data[0][7]
+
 
         expiry_month = '♾️'
         total_traffic = '♾️'
@@ -627,8 +625,12 @@ def server_detail_customer(update, context):
 
             context.user_data['period_for_upgrade'] = (expiry_date - purchase_date).days
             context.user_data['traffic_for_upgrade'] = total_traffic
-            keyboard = [
-                [InlineKeyboardButton("تمدید و ارتقا ↟", callback_data=f"upgrade_service_customize_{get_data[0][0]}")]]
+            keyboard = [[InlineKeyboardButton("تمدید و ارتقا ↟", callback_data=f"upgrade_service_customize_{get_data[0][0]}")]]
+
+            if inbound_id not in [14, 15]:
+                keyboard = [[InlineKeyboardButton("غیرقابل تمدید یا ارتقا", callback_data="just_for_show")]]
+                extra_text = '🔴 به دلیل تغییرات در سرور، این سرویس قابل ارتقا نمیباشد! لطفا این سرویس را حذف و یک سرویس جدید ایجاد کنید.'
+
 
         elif int(ret_conf['obj']['total']) == 0:
             service_activate_status = 'غیرفعال سازی ⤈' if ret_conf['obj']['enable'] else 'فعال سازی ↟'
@@ -654,6 +656,7 @@ def server_detail_customer(update, context):
             f"{auto_renwal}"
             f"\n⏰ تاریخ خرید/تمدید: {purchase_date.strftime('%H:%M:%S | %Y/%m/%d')}"
             f"\n\n🌐 آدرس سرویس:\n <code>{get_data[0][8]}</code>"
+            f"\n\n{extra_text}"
         )
 
         query.edit_message_text(text=text_, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html')
@@ -1240,10 +1243,10 @@ def disable_service_in_data_base(context, list_of_notification, user, not_enogh_
                 f"\nاعتبار شما برای تمدید خودکار سرویس کافی نبود!")
 
     keyboard = [
-        [InlineKeyboardButton("خرید سرویس جدید", callback_data=f"select_server"),
-         InlineKeyboardButton("تمدید همین سرویس", callback_data=f"upgrade_service_customize_{user[0]}")]
+        [InlineKeyboardButton("خرید سرویس جدید", callback_data=f"select_server")]
     ]
-
+    if user[9] in INBOUND_IDs_LIST:
+        keyboard.append([InlineKeyboardButton("تمدید همین سرویس", callback_data=f"upgrade_service_customize_{user[0]}")])
     # if user[1] not in rate_list:
     #     keyboard.extend([[InlineKeyboardButton("❤️ تجربه استفاده از فری‌بایت رو به اشتراک بگذارید:", callback_data=f"just_for_show")],
     #                     [InlineKeyboardButton("معمولی بود", callback_data=f"rate_ok&{list_of_notification[0][0]}_{user[0]}"),
@@ -1270,8 +1273,7 @@ def check_all_configs(context, context_2=None):
     get_from_db = sqlite_manager.select(
         column='id,chat_id,client_email,status,date,notif_day,notif_gb,auto_renewal,product_id,inbound_id,client_id',
         table='Purchased', where='active=1')
-    get_users_notif = sqlite_manager.select(
-        column='chat_id,notification_gb,notification_day,name,traffic,period,wallet', table='User')
+    get_users_notif = sqlite_manager.select(column='chat_id,notification_gb,notification_day,name,traffic,period,wallet', table='User')
 
     for server in get_all:
         for config in server['obj']:
@@ -1287,8 +1289,7 @@ def check_all_configs(context, context_2=None):
                                 traffic = client['total'] * 2
                                 expiry_timestamp = client['expiryTime']
                                 expiry_datetime = datetime.fromtimestamp(expiry_timestamp / 1000)
-                                new_expiry_datetime = (expiry_datetime - datetime.strptime(user[4].split('+')[0],
-                                                                                           "%Y-%m-%d %H:%M:%S.%f")).days
+                                new_expiry_datetime = (expiry_datetime - datetime.strptime(user[4].split('+')[0], "%Y-%m-%d %H:%M:%S.%f")).days
                                 period = datetime.now(pytz.timezone('Asia/Tehran')) + timedelta(
                                     days=new_expiry_datetime)
                                 my_data = int(period.timestamp() * 1000)
@@ -1361,9 +1362,12 @@ def check_all_configs(context, context_2=None):
                             traffic_left = round((total_traffic - usage_traffic), 2)
 
                             keyboard = [
-                                [InlineKeyboardButton("مشاهده جزئیات سرویس", callback_data=f"view_service_{user[2]}"),
-                                 InlineKeyboardButton("تمدید یا ارتقا سرویس",
-                                                      callback_data=f"upgrade_service_customize_{user[0]}")]]
+                                [InlineKeyboardButton("مشاهده جزئیات سرویس", callback_data=f"view_service_{user[2]}")]
+                            ]
+
+                            if user[9] in INBOUND_IDs_LIST:
+                                keyboard.append([InlineKeyboardButton("تمدید یا ارتقا سرویس", callback_data=f"upgrade_service_customize_{user[0]}")])
+
 
                             if not user[5] and time_left <= list_of_notification[0][2]:
                                 text = ("🔵 اطلاع رسانی تاریخ انقضا سرویس"
@@ -2325,6 +2329,7 @@ def service_advanced_option(update, context):
         keyboard_main = None
 
         if 'change_auto_renewal_status_' in query.data:
+            return query.answer('این ویژگی درحال حاضر غیرفعال است')
             data = query.data.replace('change_auto_renewal_status_', '').split('__')
             changed_to, status_1 = (1, '\n\n↲ بعد از پایان سرویس، درصورت اعتبار داشتن کیف پول، بسته به صورت خودکار تمدید میشود.') if eval(data[1]) else (0, '')
             email = data[0]
@@ -2814,6 +2819,7 @@ def upgrade_or_create(traffic, user, context):
 @handle_telegram_exceptions
 def daily_gift(update, context):
     query = update.callback_query
+    return query.answer("درحال حاضر این ویژگی غیرفعال است!")
     user = query.from_user
     chat_id = int(user["id"])
     is_user_start_bot = sqlite_manager.select(table='User', where=f'chat_id = {chat_id}')

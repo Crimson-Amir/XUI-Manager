@@ -3,7 +3,7 @@ auth = {'username': '6840091ecb325d4ae6c32bb7ec12a24c',
  'password': '103924d8b33449b8ccd2b0d22577b641'}
 PORT = 2053
 ADMIN_CHAT_ID = -1002115809340
-OTHER_ADMIN = [ADMIN_CHAT_ID, 6450325872]
+OTHER_ADMIN = [ADMIN_CHAT_ID, 6450325872, 6523962765]
 DOMAIN = "finland.ggkala.shop"
 country_main_name = '🇫🇮 فنلاند'
 country_main = 'finland'
@@ -13,7 +13,7 @@ PRICE_PER_DAY = 500
 
 telegram_bot_url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage"
 
-PAY_PER_USE_INBOUND_ID = 2
+PAY_PER_USE_INBOUND_ID = 14
 PAY_PER_USE_DOMAIN = 'human.ggkala.shop'
 LOW_WALLET_CREDIT = 1_000
 TLS_INBOUND = 7
