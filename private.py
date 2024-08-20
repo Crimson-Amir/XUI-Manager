@@ -23,3 +23,9 @@ TLS_INBOUND = 7
 
 cryptomus_api_key = 'xbPjwvsT6qiypVVwYHvUsjp5giSH2WUQ75oBDuiHSM7Wi5Zu2t9h8R02R7WC1ptF6FLfeDq1gyYTcHP9Rf4N2dwNcNTWA1PlaAaY666VGxs9foah4UXuYfTLXQfsAebW'
 cryptomus_merchant_id = 'b493112a-350e-4c57-ad74-91b608a36af9'
+
+# zarinpal ---------------------------------------
+
+merchent_id='40beb573-40d7-4030-8a8f-ab8b929e504b'
+callback_url = 'https://freebyte.click/recive_payment_result'
+

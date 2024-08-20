@@ -29,6 +29,7 @@ from api_clean import XuiApiClean
 GET_EVIDENCE, GET_EVIDENCE_PER, GET_EVIDENCE_CREDIT, GET_TICKET, GET_CONVER, REPLY_TICKET = 0, 0, 0, 0, 0, 0
 INBOUND_IDs_LIST = [13, 14]
 allow_user_in_server = 270
+service_ends_user = set()
 
 class Task(ManageDb):
     def __init__(self):
@@ -42,7 +43,7 @@ class Task(ManageDb):
                 return func(*args, **kwargs)
             except Exception as e:
                 side = 'Task Func'
-                print(f"[{side}] An error occurred in {func.__name__}: {e}")
+                print   (f"[{side}] An error occurred in {func.__name__}: {e}")
                 report_problem(func.__name__, e, side, extra_message=traceback.format_exc())
 
         return wrapper
@@ -52,7 +53,11 @@ class Task(ManageDb):
         return text[:2]
 
     @handle_exceptions
-    def return_server_countries(self):
+    def return_server_countries(self, chat_id):
+
+        allow_users_in_server_new = f'HAVING sum(active_count) < {allow_user_in_server}'
+        if chat_id in service_ends_user and chat_id != 81532053: allow_users_in_server_new = ''
+
         plans = self.custom(order=f"""
             SELECT DISTINCT name, country
             FROM Product pr
@@ -63,8 +68,8 @@ class Task(ManageDb):
                 GROUP BY product_id
             ) pu ON pu.product_id = pr.id
             WHERE pr.status = 1
-            GROUP BY UPPER(country)
-            HAVING sum(active_count) < {allow_user_in_server}""")
+            GROUP BY UPPER(country) 
+            {allow_users_in_server_new}""")
         unic_plans = {name[0]: name[1].capitalize() for name in plans}
 
         return unic_plans
@@ -183,8 +188,9 @@ def handle_telegram_conversetion_exceptions(func):
 @handle_telegram_exceptions
 def show_servers(update, context):
     query = update.callback_query
+    chat_id = query.message.chat_id
 
-    get_all_country = task.return_server_countries()
+    get_all_country = task.return_server_countries(chat_id)
 
     if get_all_country:
         keyboard = [[InlineKeyboardButton(key, callback_data=value)] for key, value in get_all_country.items()]
@@ -255,6 +261,7 @@ def payment_page(update, context):
                     [InlineKeyboardButton("پرداخت از کیف پول", callback_data=f'payment_by_wallet_{id_}'),
                      InlineKeyboardButton("کارت به کارت", callback_data=f'payment_by_card_{id_}')],
                     [InlineKeyboardButton("برگشت ↰", callback_data=f"{package[0][4]}")]]
+
     else:
         free_service_is_taken = sqlite_manager.select(column='free_service', table='User', where=f'chat_id = {query.message.chat_id}')[0][0]
 
@@ -1237,6 +1244,8 @@ def disable_service_in_data_base(context, list_of_notification, user, not_enogh_
             f"\nدرود {list_of_notification[0][3]} عزیز، سرویس شما با نام {user[2]} به پایان رسید!"
             f"\nدر صورتی که تمایل دارید نسبت به بررسی و یا تمدید سرویس اقدام کنید.")
 
+    service_ends_user.add(list_of_notification[0][0])
+
     if not_enogh_credit:
         text = ("🔴 اطلاع رسانی اتمام سرویس و تمدید خودکار ناموفق"
                 f"\nدرود {list_of_notification[0][3]} عزیز، سرویس شما با نام {user[2]} به پایان رسید!"
@@ -1696,8 +1705,12 @@ def pay_way_for_credit(update, context):
     keyboard = [
         [InlineKeyboardButton("درگاه پرداخت کریپتو", callback_data=f"cryptomus_page_wallet_{id_}")],
         [InlineKeyboardButton("کارت به کارت", callback_data=f'pay_by_card_for_credit_{id_}')],
-        [InlineKeyboardButton("برگشت ↰", callback_data="buy_credit_volume")]
+        [InlineKeyboardButton("برگشت ↰", callback_data="buy_credit_volume")],
+
     ]
+
+    if query.message.chat_id in [6458732795, 6450325872]:
+        keyboard.append([InlineKeyboardButton("درگاه پرداخت زرین پال", callback_data=f"zarinpall_page_wallet_{id_}")])
 
     text = (f"<b>❋ مبلغ انتخاب شده رو برای اضافه کردن به کیف پول تایید میکنید؟:</b>\n"
             f"\n<b>مبلغ: {package[0][0]:,} تومان</b>"
