@@ -4,12 +4,10 @@ import sqlite3
 from telegram import InlineKeyboardMarkup
 from private import ADMIN_CHAT_ID
 from keyboard import main_key as key
-from admin_task import sqlite_manager
-from ranking import RankManage, rank_access
-from utilities import message_to_user
+from ranking import rank_access
+from utilities import message_to_user, init_name, sqlite_manager, ranking_manage
 
 RANK_PER_INVITE = 50
-manage_rank = RankManage('Rank', 'level', 'rank_name',db_name='v2ray', user_id_identifier='chat_id')
 
 def bot_start(update, context):
     user = update.message.from_user
@@ -33,7 +31,7 @@ def bot_start(update, context):
 
         c.execute(
             "INSERT INTO Rank (name,user_name,chat_id,level,rank_name) VALUES (?,?,?,?,?)",
-            (user["first_name"], user["username"], int(user["id"]), level, rank_name_))
+            (init_name(user["first_name"]), user["username"], int(user["id"]), level, rank_name_))
 
         conn.commit()
 
@@ -41,8 +39,8 @@ def bot_start(update, context):
             get_user_id = context.args[0].split('_')[1]
             get_user = sqlite_manager.select(table='User', where=f'id = {get_user_id}')
 
-            manage_rank.rank_up(RANK_PER_INVITE, get_user[0][3])
-            manage_rank.rank_up(RANK_PER_INVITE, user['id'])
+            ranking_manage.rank_up(RANK_PER_INVITE, get_user[0][3])
+            ranking_manage.rank_up(RANK_PER_INVITE, user['id'])
 
             message_to_user(update, context, message=f'کاربر {user["first_name"]} با لینک دعوت شما ربات رو استارت کرد.\nتبریک، +50 رتبه دریافت کردید!', chat_id=get_user[0][3])
             invited_by = get_user[0][3]
@@ -52,7 +50,7 @@ def bot_start(update, context):
 
         context.bot.send_message(ADMIN_CHAT_ID, text=start_text_notif, parse_mode="HTML")
         c.execute("INSERT INTO User (name,user_name,chat_id,date,traffic,period,free_service,notification_gb,notification_day,wallet,invited_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                  (user["first_name"], user["username"], int(user["id"]), str(date), 10, 7, 0, 85,2,0,invited_by))
+                  (init_name(user["first_name"]), user["username"], int(user["id"]), str(date), 10, 7, 0, 85,2,0,invited_by))
 
         conn.commit()
 

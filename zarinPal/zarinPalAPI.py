@@ -38,7 +38,6 @@ class SendInformation(ZarinPal):
             information_data_instance.fee_type = returned_jason.get('data').get('fee_type')
             information_data_instance.fee = returned_jason.get('data').get('fee')
             information_data_instance.code = returned_jason.get('data').get('code')
-
             information_data_instance.amount = data.get('amount', '')
             information_data_instance.currency = data.get('currency', '')
             information_data_instance.description = data.get('description', '')

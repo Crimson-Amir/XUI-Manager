@@ -10,11 +10,12 @@ country_main = 'finland'
 protocol = 'https://'
 PRICE_PER_GB = 1_500
 PRICE_PER_DAY = 500
+infinity_name = '_Infinite_Service'
 
 telegram_bot_url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage"
 
-PAY_PER_USE_INBOUND_ID = 14
-PAY_PER_USE_DOMAIN = 'human.ggkala.shop'
+PAY_PER_USE_INBOUND_ID = 17
+PAY_PER_USE_DOMAIN = 'service.freebyte.click'
 LOW_WALLET_CREDIT = 1_000
 TLS_INBOUND = 7
 
