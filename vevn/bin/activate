@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/root/v2ray_bot/vevn"
+VIRTUAL_ENV="/root/XUI-Manager/vevn"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

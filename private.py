@@ -28,5 +28,5 @@ cryptomus_merchant_id = 'b493112a-350e-4c57-ad74-91b608a36af9'
 # zarinpal ---------------------------------------
 
 merchent_id='40beb573-40d7-4030-8a8f-ab8b929e504b'
-callback_url = 'https://freebyte.click/recive_payment_result'
+callback_url = 'https://freebyte.click/recive_payment_result/'
 

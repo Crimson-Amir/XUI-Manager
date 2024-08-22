@@ -63,7 +63,7 @@ def zarinpall_page_buy(update, context):
     query = update.callback_query
     user = query.from_user
     product_id = int(query.data.replace('zarinpall_page_buy_', ''))
-    package = sqlite_manager.custom('SELECT period,traffic,price FROM Product WHERE id = {product_id}')
+    package = sqlite_manager.custom(f'SELECT period,traffic,price FROM Product WHERE id = {product_id}')
 
     price = ranking_manage.discount_calculation(query.from_user['id'], direct_price=package[0][2], more_detail=True)
 
@@ -82,7 +82,7 @@ def zarinpall_page_buy(update, context):
 
     final_text = text.format(package[0][0], package[0][1], f'{price[0]:,}', check_off)
 
-    get_data = initialization_payment(user.id, 'buy_service', price, purchased_id)
+    get_data = initialization_payment(user.id, 'buy_service', price[0], purchased_id)
     if not get_data: return query.answer('ساخت درگاه موفقیت آمیز نبود!', show_alert=True)
 
     keyboard = [
@@ -104,10 +104,10 @@ def zarinpall_page_upgrade(update, context):
     price = ranking_manage.discount_calculation(user.id, package[0][0], package[0][1], more_detail=True)
     check_off = f'\n<b>تخفیف: {price[1]} درصد</b>' if price[1] else ''
 
-    get_data = initialization_payment(user.id, 'upgrade_service', price, purchased_id)
+    get_data = initialization_payment(user.id, 'upgrade_service', price[0], purchased_id)
     if not get_data: return query.answer('ساخت درگاه موفقیت آمیز نبود!', show_alert=True)
 
-    final_text = text.format(package[0][0], package[0][1], f'{price:,}', check_off)
+    final_text = text.format(package[0][0], package[0][1], f'{price[0]:,}', check_off)
 
     keyboard = [
         [InlineKeyboardButton("ورود به درگاه ↶", url=f'https://payment.zarinpal.com/pg/StartPay/{get_data.authority}')],
@@ -126,7 +126,7 @@ def zarinpall_page_wallet(update, context):
     package = sqlite_manager.custom(f'SELECT value FROM Credit_History where id = {credit_id}')
     price = ranking_manage.discount_calculation(query.message.chat_id, direct_price=package[0][0], without_off=True)
 
-    get_data = initialization_payment(user.id, 'churge_wallet', price, credit_id)
+    get_data = initialization_payment(user.id, 'charge_wallet', price, id_holder=credit_id)
     if not get_data: return query.answer('ساخت درگاه موفقیت آمیز نبود!', show_alert=True)
 
     final_text = ("<b>• اطلاعات زیر رو بررسی کنید و در صورت تایید پرداخت رو نهایی کنید:</b>"

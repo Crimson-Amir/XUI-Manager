@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import pytz, requests, random, json, qrcode
 import sys, os
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from private import ADMIN_CHAT_ID, telegram_bot_token, merchent_id, infinity_name
 from utilities import sqlite_manager, api_operation, second_to_ms, traffic_to_gb, ranking_manage, wallet_manage
 from io import BytesIO
@@ -100,7 +100,7 @@ def subcategory_auto(invite_chat_id, price):
 
 
 def upgrade_service(service_id):
-    get_client = sqlite_manager.custom(f'SELECT chat_id,product_id,inboun_id,client_email FROM Purchased WHERE id = {service_id}]')
+    get_client = sqlite_manager.custom(f'SELECT chat_id,product_id,inbound_id,client_email FROM Purchased WHERE id = {service_id}')
 
     chat_id = get_client[0][0]
     product_id = get_client[0][1]
@@ -157,12 +157,12 @@ def upgrade_service(service_id):
             report_status_to_admin(text=f'🟢 User Upgrade Service [WEB SERVER]\nService Name: {client_email}\nTraffic: {traffic_db}GB\nPeriod: {period}day', chat_id=chat_id)
             break
 
-    return get_client[0][4], price
+    return chat_id, price
 
 
 def add_client_bot(purchased_id):
     random_number = random.randint(0, 10_000_000)
-    get_client_db = sqlite_manager.custom(f'SELECT chat_id,product_id FROM Purchased WHERE id = {purchased_id}]')
+    get_client_db = sqlite_manager.custom(f'SELECT chat_id,product_id FROM Purchased WHERE id = {purchased_id}')
 
     get_service_db = sqlite_manager.select(
         column='inbound_id,name,period,traffic,domain,server_domain,inbound_host,inbound_header_type',
@@ -224,7 +224,7 @@ def add_client_bot(purchased_id):
 def send_clean_for_customer(id_, max_retries=2):
     create = add_client_bot(id_)
     if create[0]:
-        get_client = sqlite_manager.custom(f'SELECT chat_id,product_id,inboun_id,client_email FROM Purchased WHERE id = {id_}]')
+        get_client = sqlite_manager.custom(f'SELECT chat_id,product_id,inbound_id,client_email FROM Purchased WHERE id = {id_}')
 
         chat_id = get_client[0][0]
         product_id = get_client[0][1]
@@ -332,3 +332,6 @@ def add_to_user_credit(chat_id, value, tell_to_customer=True):
         report_status_to_user('🟡 هنگام اجرای عملیات خطایی به وجود آمد!'
                               f'\nمبلغ {value:,} تومان به کیف پول شما اضافه شد.'
                               ' لطفا عملیات مورد نظر رو از طریق اعتبار کیف پول انجام بدید.', chat_id)
+
+
+# send_clean_for_customer(2)
