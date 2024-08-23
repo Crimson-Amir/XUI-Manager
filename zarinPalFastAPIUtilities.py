@@ -155,6 +155,11 @@ def upgrade_service(service_id):
 
             record_operation_in_file(chat_id=chat_id, price=price, name_of_operation=f'تمدید یا ارتقا سرویس {client_email}', operation=0, status_of_pay=1)
             report_status_to_admin(text=f'🟢 User Upgrade Service [WEB SERVER]\nService Name: {client_email}\nTraffic: {traffic_db}GB\nPeriod: {period}day', chat_id=chat_id)
+            text_user = (f'🟢 سرویس شما با نام {client_email} با موفقیت ارتقا یافت!'
+                         '\n• مشخصات اضافه شده به سرویس به شرح زیر میباشد:'
+                         f'\n• ترافیک: {traffic_db} گیگابایت'
+                         f'\n• دوره زمانی: {period} روز')
+            report_status_to_user(text=text_user, chat_id=chat_id)
             break
 
     return chat_id, price
