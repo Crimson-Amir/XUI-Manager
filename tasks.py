@@ -27,7 +27,7 @@ import traceback
 from api_clean import XuiApiClean
 
 GET_EVIDENCE, GET_EVIDENCE_PER, GET_EVIDENCE_CREDIT, GET_TICKET, GET_CONVER, REPLY_TICKET = 0, 0, 0, 0, 0, 0
-allow_user_in_server = 260
+allow_user_in_server = 250
 
 class Task(ManageDb):
     def __init__(self):
