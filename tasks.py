@@ -27,7 +27,7 @@ import traceback
 from api_clean import XuiApiClean
 
 GET_EVIDENCE, GET_EVIDENCE_PER, GET_EVIDENCE_CREDIT, GET_TICKET, GET_CONVER, REPLY_TICKET = 0, 0, 0, 0, 0, 0
-allow_user_in_server = 250
+allow_user_in_server = 300
 
 class Task(ManageDb):
     def __init__(self):
@@ -250,12 +250,12 @@ def payment_page(update, context):
     id_ = int(query.data.replace('service_', ''))
     package = sqlite_manager.select(table='Product', where=f'id = {id_}')
     price = ranking_manage.discount_calculation(query.from_user['id'], direct_price=package[0][7], more_detail=True)
+    # [InlineKeyboardButton("کارت به کارت", callback_data=f'payment_by_card_{id_}')],
 
     if package[0][7]:
         keyboard = [[InlineKeyboardButton("پرداخت با کارت بانکی", callback_data=f"zarinpall_page_buy_{id_}")],
                     [InlineKeyboardButton("پرداخت از کیف پول", callback_data=f'payment_by_wallet_{id_}'),
                      InlineKeyboardButton("درگاه پرداخت کریپتو", callback_data=f"cryptomus_page_{id_}")],
-                    [InlineKeyboardButton("کارت به کارت", callback_data=f'payment_by_card_{id_}')],
                     [InlineKeyboardButton("برگشت ↰", callback_data=f"{package[0][4]}")]]
 
     else:
@@ -958,10 +958,10 @@ def payment_page_upgrade(update, context):
         [InlineKeyboardButton("پرداخت با کارت بانکی", callback_data=f"zarinpall_page_upgrade_{id_}")],
         [InlineKeyboardButton("پرداخت از کیف پول", callback_data=f'payment_by_wallet_upgrade_service_{id_}'),
          InlineKeyboardButton("درگاه پرداخت کریپتو", callback_data=f"cryptomus_page_upgrade_{id_}")],
-        [InlineKeyboardButton("کارت به کارت", callback_data=f'upg_ser_by_card{id_}')],
         [InlineKeyboardButton("برگشت ↰", callback_data="my_service")]
     ]
-
+    
+    # [InlineKeyboardButton("کارت به کارت", callback_data=f'upg_ser_by_card{id_}')],
 
     price = ranking_manage.discount_calculation(chat_id, package[0][5], package[0][6], more_detail=True)
     check_off = f'\n<b>تخفیف: {price[1]} درصد</b>' if price[1] else ''
@@ -1309,15 +1309,14 @@ def check_all_configs(context, context_2=None):
                                     keyboard = [[InlineKeyboardButton("مشاهده جزئیات سرویس",
                                                                       callback_data=f"view_service_{user[2]}")]]
 
-                                    # print(api_operation.reset_client_traffic(user[9], user[2], get_server_domain[0][0]))
+                                    print(api_operation.reset_client_traffic(user[9], user[2], get_server_domain[0][0]))
 
                                     data = {
                                         "id": int(user[9]),
                                         "settings": "{{\"clients\":[{{\"id\":\"{0}\",\"alterId\":0,"
                                                     "\"email\":\"{1}\",\"limitIp\":0,\"totalGB\":{2},\"expiryTime\":{3},"
                                                     "\"enable\":true,\"tgId\":\"\",\"subId\":\"\"}}]}}".format(
-                                            user[10], user[2],
-                                            traffic, my_data)}
+                                            user[10], user[2], traffic, my_data)}
 
 
                                     wallet_manage.less_from_wallet(list_of_notification[0][0], price,
@@ -1691,11 +1690,11 @@ def pay_way_for_credit(update, context):
     query = update.callback_query
     id_ = int(query.data.replace('pay_way_for_credit_', ''))
     package = sqlite_manager.select(column='value', table='Credit_History', where=f'id = {id_}')
+    # InlineKeyboardButton("کارت به کارت", callback_data=f'pay_by_card_for_credit_{id_}'),
 
     keyboard = [
         [InlineKeyboardButton("پرداخت با کارت بانکی", callback_data=f"zarinpall_page_wallet_{id_}")],
-        [InlineKeyboardButton("کارت به کارت", callback_data=f'pay_by_card_for_credit_{id_}'),
-         InlineKeyboardButton("درگاه پرداخت کریپتو", callback_data=f"cryptomus_page_wallet_{id_}")],
+        [InlineKeyboardButton("درگاه پرداخت کریپتو", callback_data=f"cryptomus_page_wallet_{id_}")],
         [InlineKeyboardButton("برگشت ↰", callback_data="buy_credit_volume")],
 
     ]
