@@ -228,8 +228,7 @@ def get_service_of_server(update, context):
                 callback_data=f"service_{pattern[0]}")] for pattern in service_list]
 
             keyboard.append(
-                [InlineKeyboardButton("✪ سرویس دلخواه", callback_data=f"personalization_service_{plans[0][0]}"),
-                 InlineKeyboardButton("✪ سرویس ساعتی", callback_data=f"pay_per_use_{plans[0][0]}")])
+                [InlineKeyboardButton("✪ سرویس دلخواه", callback_data=f"personalization_service_{plans[0][0]}")])
 
             keyboard.append([InlineKeyboardButton("برگشت ↰", callback_data="select_server")])
 
