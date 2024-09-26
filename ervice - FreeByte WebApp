@@ -1,0 +1,11 @@
+[0;1;31m×[0m freebyte.service - FreeByte WebApp
+     Loaded: loaded (/etc/systemd/system/freebyte.service; enabled; vendor preset: enabled)
+     Active: [0;1;31mfailed[0m (Result: exit-code) since Thu 2024-09-26 10:08:56 UTC; 24s ago
+   Main PID: 4667 (code=exited, status=200/CHDIR)
+        CPU: 3ms
+
+Sep 26 10:08:56 6450325872-telegrammbot systemd[1]: Started FreeByte WebApp.
+Sep 26 10:08:56 6450325872-telegrammbot systemd[4667]: [0;1;31m[0;1;39m[0;1;31mfreebyte.service: Changing to the requested working directory failed: Permission denied[0m
+Sep 26 10:08:56 6450325872-telegrammbot systemd[4667]: [0;1;31m[0;1;39m[0;1;31mfreebyte.service: Failed at step CHDIR spawning /root/XUI-Manager/vevn/bin/python3: Permission denied[0m
+Sep 26 10:08:56 6450325872-telegrammbot systemd[1]: [0;1;39m[0;1;31m[0;1;39mfreebyte.service: Main process exited, code=exited, status=200/CHDIR[0m
+Sep 26 10:08:56 6450325872-telegrammbot systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mfreebyte.service: Failed with result 'exit-code'.[0m
